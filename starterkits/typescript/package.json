@@ -1,0 +1,19 @@
+{
+  "name": "blitz2022",
+  "version": "1.0.0",
+  "description": "Blitz 2022",
+  "main": "index.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Coveo",
+  "license": "MIT",
+  "dependencies": {
+    "@types/ws": "6.0.4",
+    "typescript": "3.9.7",
+    "ws": "7.2.1"
+  }
+}
