@@ -81,12 +81,19 @@ class Bot:
         # sorting advailable targets
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
                               self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+        # todo voir si une autre unit serait plus proche du target
+
         # formating targets
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
 
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
+
+        if target_path is None:
+            # todo
+            pass
+
         # setting target
         self.target_manager.set_target_of_unit(unit, target_path.target)
 

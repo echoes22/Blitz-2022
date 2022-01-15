@@ -20,4 +20,4 @@ class Target:
 @dataclass
 class TargetPath:
     target: Target
-    path: List
+    path: List  # [(x, y)]
