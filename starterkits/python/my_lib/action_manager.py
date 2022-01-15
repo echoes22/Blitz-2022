@@ -37,19 +37,19 @@ class ActionManager:
         spawns = self.spawn_manager.find_all_spawn()
         return spawns[random.randint(0, len(spawns) - 1)]
 
-    def get_optimal_move(self, unit: PrioritizedUnit) -> CommandAction:
+    def get_optimal_move(self, unit: PrioritizedUnit, corners) -> CommandAction:
         if unit.hasDiamond:
-            return self.get_optimal_hodler_move(unit)
+            return self.get_optimal_hodler_move(unit, corners)
         else:
             return self.move_to_nearest_diamond(unit)
 
-    def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
+    def get_optimal_hodler_move(self, unit: Unit, corners) -> CommandAction:
         current_enemy_units_positions = [unit.position for unit in self.unit_manager.get_spawned_enemy_units()]
         if unit.isSummoning:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
         if self.tick.tick == self.tick.totalTick - 1:
             return self.create_drop_action(unit)
-        elif self.position_is_dangerous(unit, current_enemy_units_positions):
+        elif self.position_is_dangerous(unit, corners):
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7
               and not unit.isSummoning
@@ -87,7 +87,10 @@ class ActionManager:
                         not e_unit.hasDiamond and self.tick.map.get_tile_type_at(e_unit.position) == TileType.EMPTY]
         target_path = self.pathfinder.get_nearest_target(unit.position, free_enemies)
         if target_path:
-            return self.create_move_action(unit, target_path.get_next_position())
+            if len(target_path.path) == 2:
+                return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=Position(target_path.path[1][0], target_path.path[1][1]))
+            else:
+                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=target_path.get_next_position())
         return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
@@ -268,11 +271,18 @@ class ActionManager:
 
         return best_position
 
-    def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
-        for pos in enemy_pos:
-            distance = self.pathfinder.simple_distance(unit.position, pos)
-            if distance is not None and distance < 3:
+    def position_is_dangerous(self, unit: Unit, corners) -> bool:
+        current_enemy_units = [unit for unit in self.unit_manager.get_spawned_enemy_units()]
+        for enemy_unit in current_enemy_units:
+            diffx = abs(unit.position.x - enemy_unit.position.x )
+            diffy = abs(unit.position.y - enemy_unit.position.y )
+            diff = diffy + diffx
+            
+            if diff <= 1 or diff <= 2 and self.is_higher_priority(enemy_unit, unit) and unit.position in [my_corner[0] for my_corner in corners]:
                 return True
+            elif self.is_higher_priority(unit, enemy_unit):
+                continue
+        
         return False
 
     def summoning_is_safe(self, unit: Unit, enemy_positions: List[Position]) -> bool:
@@ -291,8 +301,14 @@ class ActionManager:
     def is_higher_priority(self, unit1: Unit, unit2: Unit):
             return self.get_team_priority_level(unit1.teamId) < self.get_team_priority_level(unit2.teamId)
 
+    def is_higher_priority_in_2_turns(self, unit1: Unit, unit2: Unit):
+            return self.get_team_priority_level_in_2_turns(unit1.teamId) < self.get_team_priority_level(unit2.teamId)
+
     def get_team_priority_level(self, team_id: str) -> int:
         return self.tick.teamPlayOrderings[str(self.tick.tick+1)].index(team_id)
+
+    def get_team_priority_level_in_2_turns(self, team_id: str) -> int:
+        return self.tick.teamPlayOrderings[str(self.tick.tick+2)].index(team_id)
 
     def get_unit_los(self, unit: Unit) -> List[Position]:
         # aucune los si sur spawn pour pas viner from spawn
