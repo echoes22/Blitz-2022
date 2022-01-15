@@ -5,18 +5,24 @@ from game_command import CommandAction, CommandType
 from game_message import Unit, Tick, Position, TileType
 from my_lib.models import TargetType, Target
 from my_lib.pathfinder_manager import PathFinderManager
+from my_lib.spawn_manager import SpawnManager
 from my_lib.target_manager import TargetManager
 from my_lib.unit_manager import UnitManager
 
 
 class ActionManager:
-    def __init__(self, tick: Tick, unit_manager: UnitManager):
+    def __init__(self, unit_manager: UnitManager, pathfinder: PathFinderManager, spawn_manager: SpawnManager):
+        self.unit_manager = unit_manager
+        self.tick = None
+        self.team = None
+        self.target_manager = None
+        self.pathfinder = pathfinder
+        self.spawn_manager = spawn_manager
+
+    def init_tick(self, tick: Tick):
         self.tick: Tick = tick
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.target_manager = TargetManager(self.team.units, tick.map)
-        self.pathfinder = PathFinderManager(unit_manager)
-        self.pathfinder.set_tick_map(tick.map)
-        self.unit_manager = unit_manager
 
     def get_optimal_spawn(self, unit: Unit) -> CommandAction:
         # Diamonds to Target
@@ -31,7 +37,7 @@ class ActionManager:
         return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
 
     def get_random_spawn_position(self) -> Position:
-        spawns = self.pathfinder.find_all_spawn()
+        spawns = self.spawn_manager.find_all_spawn()
         return spawns[random.randint(0, len(spawns) - 1)]
 
     def get_optimal_move(self, unit: Unit) -> CommandAction:
