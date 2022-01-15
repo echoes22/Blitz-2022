@@ -68,7 +68,6 @@ class ActionManager:
             return self.create_move_action(unit, new_pos)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
-        # todo voir si une autre unit serait plus proche du target
         # formating targets
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        self.unit_manager.get_available_diamonds() if
@@ -78,7 +77,7 @@ class ActionManager:
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
         if target_path is None:
-            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+            return self.move_to_nearest_player_without_diamond(unit)
 
         # setting target
         self.target_manager.set_target_of_unit(unit, target_path.target)
@@ -87,6 +86,15 @@ class ActionManager:
         next_position = target_path.get_next_position()
 
         return self.create_move_action(unit, next_position)
+
+    def move_to_nearest_player_without_diamond(self, unit: Unit) -> CommandAction:
+        free_enemies = [Target(TargetType.UNIT, e_unit, e_unit.position) for e_unit in
+                        self.unit_manager.get_spawned_enemy_units() if
+                        not e_unit.hasDiamond and self.tick.map.get_tile_type_at(e_unit.position) == TileType.EMPTY]
+        target_path = self.pathfinder.get_nearest_target(unit.position, free_enemies)
+        if target_path:
+            return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=target_path.get_next_position())
+        return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         if not unit.hasDiamond:
@@ -259,7 +267,7 @@ class ActionManager:
     def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
         for pos in enemy_pos:
             distance = self.pathfinder.simple_distance(unit.position, pos)
-            if distance is not None and distance < 2:
+            if distance is not None and distance < 3:
                 return True
         return False
 
