@@ -271,8 +271,8 @@ class ActionManager:
 
     def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
         for pos in enemy_pos:
-            distance = self.get_distance(unit.position, pos)
-            if distance is not None and distance <= 1:
+            distance = self.pathfinder.simple_distance(unit.position, pos)
+            if distance is not None and distance < 1.5:
                 return True
         return False
 
@@ -281,7 +281,7 @@ class ActionManager:
         unit_diamond = [x for x in self.tick.map.diamonds if x.id == unit.diamondId][0]
         for pos in enemy_positions:
             distance = self.get_distance(unit.position, pos)
-            if distance is not None and distance <= unit_diamond.summonLevel + 2:
+            if distance is not None and distance <= unit_diamond.summonLevel + 3:
                 return False
         return True
 
