@@ -2,24 +2,19 @@ from copy import deepcopy
 from math import sqrt
 from typing import List
 
-from game_message import Position, TickMap, TileType, Unit
+from game_message import Position, TickMap, TileType
 from my_lib.models import Target, TargetPath
+from my_lib.unit_manager import UnitManager
 
 
 class PathFinderManager:
-    def __init__(self):
+    def __init__(self, unit_manager: UnitManager):
         self._tick_map: TickMap = None
-        self._enemy_units: List[Unit] = []
-        self._ally_units: List[Unit] = []
+        self._unit_manager = unit_manager
+        self._spawns = []
 
     def set_tick_map(self, tick_map: TickMap):
         self._tick_map = tick_map
-
-    def set_enemy_units(self, enemy_units: List[Unit]):
-        self._enemy_units = enemy_units
-
-    def set_ally_units(self, ally_units: List[Unit]):
-        self._ally_units = ally_units
 
     def get_nearest_target(self, origin: Position, targets: List[Target],
                            blacklisted_positions: List[Position] = []) -> TargetPath:
@@ -43,49 +38,56 @@ class PathFinderManager:
         return None
 
     def find_all_spawn(self) -> List[Position]:
-        game_map = self._tick_map.tiles
-        spawns = []
-        for x in range(len(game_map)):
-            for y in range(len(game_map[x])):
-                if self._tick_map.get_tile_type_at(Position(x, y)) == TileType.SPAWN:
-                    try:
-                        if self._tick_map.get_tile_type_at(Position(x - 1, y)) == TileType.EMPTY:
-                            spawns.append(Position(x, y))
-                            continue
-                    except:
-                        pass
+        if not self._spawns:
+            game_map = self._tick_map.tiles
+            spawns = []
+            for x in range(len(game_map)):
+                for y in range(len(game_map[x])):
+                    if self._tick_map.get_tile_type_at(Position(x, y)) == TileType.SPAWN:
+                        try:
+                            if self._tick_map.get_tile_type_at(Position(x - 1, y)) == TileType.EMPTY:
+                                spawns.append(Position(x, y))
+                                continue
+                        except:
+                            pass
 
-                    try:
-                        if self._tick_map.get_tile_type_at(Position(x, y - 1)) == TileType.EMPTY:
-                            spawns.append(Position(x, y))
-                            continue
-                    except:
-                        pass
+                        try:
+                            if self._tick_map.get_tile_type_at(Position(x, y - 1)) == TileType.EMPTY:
+                                spawns.append(Position(x, y))
+                                continue
+                        except:
+                            pass
 
-                    try:
-                        if self._tick_map.get_tile_type_at(Position(x + 1, y)) == TileType.EMPTY:
-                            spawns.append(Position(x, y))
-                            continue
-                    except:
-                        pass
+                        try:
+                            if self._tick_map.get_tile_type_at(Position(x + 1, y)) == TileType.EMPTY:
+                                spawns.append(Position(x, y))
+                                continue
+                        except:
+                            pass
 
-                    try:
-                        if self._tick_map.get_tile_type_at(Position(x, y + 1)) == TileType.EMPTY:
-                            spawns.append(Position(x, y))
-                            continue
-                    except:
-                        pass
-        return spawns
+                        try:
+                            if self._tick_map.get_tile_type_at(Position(x, y + 1)) == TileType.EMPTY:
+                                spawns.append(Position(x, y))
+                                continue
+                        except:
+                            pass
+                self._spawns = spawns
+        return self._spawns
 
     def find_optimal_spawn(self, targets: List[Target]):
         optimal_spawn_and_target_path = None
         spawns = self.find_all_spawn()
         optimal_spawn = None
         min_distance = 99999
-        unit_positions = [unit.position for unit in self._ally_units] + [unit.position for unit in self._enemy_units]
+        allied_unit_positions = [unit.position for unit in self._unit_manager.get_spawned_allied_units()]
+        enemy_unit_positions_in_spawn_or_with_no_gem = [unit.position for unit in
+                                                        self._unit_manager.get_spawned_enemy_units() if
+                                                        self._tick_map.get_tile_type_at(
+                                                            unit.position) == TileType.SPAWN or not unit.hasDiamond]
 
         for spawn in spawns:
-            my_target = self.get_nearest_target(spawn, targets, unit_positions)
+            my_target = self.get_nearest_target(spawn, targets,
+                                                allied_unit_positions + enemy_unit_positions_in_spawn_or_with_no_gem)
             if my_target is None:
                 continue
             distance = my_target.get_distance()
