@@ -31,6 +31,7 @@ class ActionManager:
                        untargeted_diamond]
 
         destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
+        print(destination_and_target_path)
         if not destination_and_target_path:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
         self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)

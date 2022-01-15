@@ -47,7 +47,33 @@ class PathFinderManager:
         for x in range(len(game_map)):
             for y in range(len(game_map[x])):
                 if self._tick_map.get_tile_type_at(Position(x, y)) == TileType.SPAWN:
-                    spawns.append(Position(x, y))
+                    try:
+                        if self._tick_map.get_tile_type_at(Position(x - 1, y)) == TileType.EMPTY:
+                            spawns.append(Position(x, y))
+                            continue
+                    except:
+                        pass
+
+                    try:
+                        if self._tick_map.get_tile_type_at(Position(x, y - 1)) == TileType.EMPTY:
+                            spawns.append(Position(x, y))
+                            continue
+                    except:
+                        pass
+
+                    try:
+                        if self._tick_map.get_tile_type_at(Position(x + 1, y)) == TileType.EMPTY:
+                            spawns.append(Position(x, y))
+                            continue
+                    except:
+                        pass
+
+                    try:
+                        if self._tick_map.get_tile_type_at(Position(x, y + 1)) == TileType.EMPTY:
+                            spawns.append(Position(x, y))
+                            continue
+                    except:
+                        pass
         return spawns
 
     def find_optimal_spawn(self, targets: List[Target]):
