@@ -17,6 +17,7 @@ class Bot:
         self.enemy_units: List[Unit] = []
         self.ally_units: List[Unit] = []
         print("Initializing your super mega duper bot")
+        self.heatmap = None
 
     def get_next_moves(self, tick: Tick) -> List:
         """
@@ -36,7 +37,14 @@ class Bot:
 
         actions: List = []
 
+        if self.tick.tick == 0:
+            self.heatmap = self.make_heatmap()
+
+
         for unit in self.team.units:
+            
+
+
             if not unit.hasSpawned:
                 actions.append(self.get_optimal_spawn(unit))
 
@@ -290,3 +298,18 @@ class Bot:
     def get_distance(self, origin: Position, destination: Position) -> int:
         target_path = self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)])
         return target_path.get_distance() if target_path else None
+
+    def make_heatmap(self) -> List[List[str]]:
+        my_map = self.tick.map
+        my_tiles = my_map.tiles
+        heatmap = [[-2 for x in range(my_map.get_map_size_x)] for  y in range(my_map.get_map_size_y)]
+        
+        region = 0
+        for  y in range(my_map.get_map_size_y):
+            for x in range(my_map.get_map_size_x):
+                if heatmap[y][x] == -2:
+                    if my_tiles[y][x]== "WALL":
+                        heatmap[y][x] == -1
+                    else:
+                        if
+    
