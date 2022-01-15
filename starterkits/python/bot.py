@@ -1,6 +1,7 @@
 from typing import List
-from game_message import Tick, Position, Team, TickMap, TileType
+from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
 from game_command import CommandAction, CommandType
+from math import sqrt
 
 import random
 
@@ -16,6 +17,8 @@ class Bot:
         No path finding is required, you can simply send a destination per unit and the game will move your unit towards
         it in the next turns.
         """
+        self.tick = tick
+
         my_team: Team = tick.get_teams_by_id()[tick.teamId]
 
         actions: List = []
@@ -29,8 +32,10 @@ class Bot:
                 )
             else:
                 actions.append(
-                    CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.get_random_position(tick.map))
+                    self.get_optimal_move(unit)
                 )
+
+            # CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.get_random_position(tick.map))
 
         return actions
 
@@ -49,3 +54,31 @@ class Bot:
                     spawns.append(position)
 
         return spawns[random.randint(0, len(spawns) - 1)]
+
+    def get_optimal_move(self, unit: Unit) -> CommandAction: 
+        return self.move_to_nearest_diamond(unit)
+
+    def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
+        diamond = self.find_nearest_diamond(unit)
+        
+        return self.create_move_action(unit, diamond.position)
+
+    def find_nearest_diamond(self, unit: Unit) -> Diamond:
+        unit_pos = unit.position
+        diamond_list = self.tick.map.diamonds
+
+        closest_diamond = (diamond_list[0], 999999)
+        for diamond in diamond_list:
+            if not diamond.ownerId:
+                diamond_pos = diamond.position
+                distance = self.get_distance(unit_pos, diamond_pos)
+                if distance <= closest_diamond[1]:
+                    closest_diamond = (diamond, distance)
+
+        return closest_diamond[0]
+
+    def get_distance(self, pos1: Position, pos2: Position):
+        return sqrt((pos1.x - pos2.x)**2 + (pos1.y - pos2.y)**2)
+
+    def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
+        return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
