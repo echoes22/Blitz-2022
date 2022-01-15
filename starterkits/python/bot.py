@@ -117,8 +117,9 @@ class Bot:
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
 
+        allies_position = [unit.position for unit in self.ally_units]
         # finding nearest diamond
-        target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
+        target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
         if target_path is None:
             # todo kill mode
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)

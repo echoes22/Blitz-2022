@@ -57,7 +57,6 @@ class PathFinderManager:
         min_distance = 99999
         unit_positions = [unit.position for unit in self._ally_units] + [unit.position for unit in self._enemy_units]
 
-        print([f"{position.x} {position.y}" for position in unit_positions])
         for spawn in spawns:
             my_target = self.get_nearest_target(spawn, targets, unit_positions)
             if my_target is None:
