@@ -1,9 +1,7 @@
-from turtle import st
-from typing import List
-from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
+from game_message import Position, TickMap, TileType
 
 
-class Node():
+class Node:
     """A node class for A* Pathfinding"""
 
     def __init__(self, parent=None, position=None):
@@ -27,14 +25,7 @@ def astar(tickmap : TickMap , start, end):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
     maze = tickmap.tiles
     # Create start and end node
-    start_node = Node(None, (start.x,start.y))
-
-    if tickmap.get_tile_type_at(start) == TileType.SPAWN :
-        condition = ["SPAWN","EMPTY"]
-    else:
-        condition = ["EMPTY"]
-
-
+    start_node = Node(None, (start.x, start.y))
 
     start_node.g = start_node.h = start_node.f = 0
     end_node = Node(None, (end.x,end.y))
@@ -79,8 +70,14 @@ def astar(tickmap : TickMap , start, end):
             node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
             # Make sure within range
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (
+                    len(maze[len(maze) - 1]) - 1) or node_position[1] < 0:
                 continue
+
+            if tickmap.get_tile_type_at(Position(node_position[0], node_position[1])) == TileType.SPAWN:
+                condition = ["SPAWN", "EMPTY"]
+            else:
+                condition = ["EMPTY"]
 
             # Make sure walkable terrain
             if maze[node_position[0]][node_position[1]] not in condition:
