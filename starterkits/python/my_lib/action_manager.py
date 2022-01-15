@@ -40,19 +40,19 @@ class ActionManager:
         spawns = self.spawn_manager.find_all_spawn()
         return spawns[random.randint(0, len(spawns) - 1)]
 
-    def get_optimal_move(self, unit: Unit) -> CommandAction:
+    def get_optimal_move(self, unit: Unit, corners) -> CommandAction:
         if unit.hasDiamond:
-            return self.get_optimal_hodler_move(unit)
+            return self.get_optimal_hodler_move(unit, corners)
         else:
             return self.move_to_nearest_diamond(unit)
 
-    def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
+    def get_optimal_hodler_move(self, unit: Unit, corners) -> CommandAction:
         current_enemy_units_positions = [unit.position for unit in self.unit_manager.get_spawned_enemy_units()]
         if unit.isSummoning:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
         if self.tick.tick == self.tick.totalTick - 1:
             return self.create_drop_action(unit)
-        elif self.position_is_dangerous(unit):
+        elif self.position_is_dangerous(unit, corners):
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7
               and not unit.isSummoning
@@ -277,14 +277,14 @@ class ActionManager:
 
         return best_position
 
-    def position_is_dangerous(self, unit: Unit) -> bool:
+    def position_is_dangerous(self, unit: Unit, corners) -> bool:
         current_enemy_units = [unit for unit in self.unit_manager.get_spawned_enemy_units()]
         for enemy_unit in current_enemy_units:
             diffx = abs(unit.position.x - enemy_unit.position.x )
             diffy = abs(unit.position.y - enemy_unit.position.y )
             diff = diffy + diffx
             
-            if diff <= 1 or diff <= 2 and self.is_higher_priority(enemy_unit, unit):
+            if diff <= 1 or diff <= 2 and self.is_higher_priority(enemy_unit, unit) and unit.position in [my_corner[0] for my_corner in corners]:
                 return True
             elif self.is_higher_priority(unit, enemy_unit):
                 continue
