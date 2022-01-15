@@ -2,7 +2,7 @@ import random
 from typing import List
 
 from game_command import CommandAction, CommandType
-from game_message import Unit, Tick, Position, TileType
+from game_message import Unit, Tick, Position, TileType, Team
 from my_lib.models import TargetType, Target
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.spawn_manager import SpawnManager
@@ -275,3 +275,7 @@ class ActionManager:
     def get_distance(self, origin: Position, destination: Position) -> int:
         target_path = self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)])
         return target_path.get_distance() if target_path else None
+
+    def get_team_priority_level(self, team_id: str) -> int:
+        teams = [x.id for x in self.tick.teams]
+        return teams.index(team_id)
