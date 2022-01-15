@@ -2,8 +2,8 @@ import random
 from typing import List
 
 from game_command import CommandAction, CommandType
-from game_message import Unit, Tick, Position, TileType, Team
-from my_lib.models import TargetType, Target
+from game_message import Unit, Tick, Position, TileType
+from my_lib.models import TargetType, Target, PrioritizedUnit
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.spawn_manager import SpawnManager
 from my_lib.target_manager import TargetManager
@@ -11,20 +11,20 @@ from my_lib.unit_manager import UnitManager
 
 
 class ActionManager:
-    def __init__(self, unit_manager: UnitManager, pathfinder: PathFinderManager, spawn_manager: SpawnManager):
+    def __init__(self, unit_manager: UnitManager, pathfinder: PathFinderManager, spawn_manager: SpawnManager,
+                 target_manager: TargetManager):
         self.unit_manager = unit_manager
         self.tick = None
         self.team = None
         self.target_manager = None
         self.pathfinder = pathfinder
         self.spawn_manager = spawn_manager
+        self.target_manager = target_manager
 
     def init_tick(self, tick: Tick):
         self.tick: Tick = tick
-        self.team = tick.get_teams_by_id()[tick.teamId]
-        self.target_manager = TargetManager(self.team.units, tick.map)
 
-    def get_optimal_spawn(self, unit: Unit) -> CommandAction:
+    def get_optimal_spawn(self, unit: PrioritizedUnit) -> CommandAction:
         # Diamonds to Target
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        self.unit_manager.get_available_diamonds() if
@@ -69,23 +69,20 @@ class ActionManager:
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         # formating targets
-        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
-                       self.unit_manager.get_available_diamonds() if
-                       self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+        target_list = self.target_manager.get_targets(unit)
+        if target_list:
+            allies_position = [unit.position for unit in self.unit_manager.get_spawned_allied_units()]
+            for target in target_list:
+                # finding nearest diamond
+                target_path = self.pathfinder.get_target_path(unit.position, target, allies_position)
+                if target_path:
+                    # setting target
+                    self.target_manager.set_target_of_unit(unit, target_path.target)
+                    # move to next position
+                    next_position = target_path.get_next_position()
+                    return self.create_move_action(unit, next_position)
 
-        allies_position = [unit.position for unit in self.unit_manager.get_spawned_allied_units()]
-        # finding nearest diamond
-        target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
-        if target_path is None:
-            return self.move_to_nearest_player_without_diamond(unit)
-
-        # setting target
-        self.target_manager.set_target_of_unit(unit, target_path.target)
-
-        # move to next position
-        next_position = target_path.get_next_position()
-
-        return self.create_move_action(unit, next_position)
+        return self.move_to_nearest_player_without_diamond(unit)
 
     def move_to_nearest_player_without_diamond(self, unit: Unit) -> CommandAction:
         free_enemies = [Target(TargetType.UNIT, e_unit, e_unit.position) for e_unit in

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from math import sqrt
-from typing import List
+from typing import List, Optional
 
 from game_message import Position, TickMap, TileType
 from my_lib.models import Target, TargetPath
@@ -10,7 +10,7 @@ from my_lib.unit_manager import UnitManager
 
 class PathFinderManager:
     def __init__(self, unit_manager: UnitManager, spawn_manager: SpawnManager):
-        self._tick_map: TickMap = None
+        self._tick_map: Optional[TickMap] = None
         self._unit_manager = unit_manager
         self._spawn_manager = spawn_manager
 
@@ -18,30 +18,36 @@ class PathFinderManager:
         self._tick_map = tick_map
 
     def get_nearest_target(self, origin: Position, targets: List[Target],
-                           blacklisted_positions: List[Position] = []) -> TargetPath:
+                           blacklisted_positions=None) -> Optional[TargetPath]:
+        if blacklisted_positions is None:
+            blacklisted_positions = []
         result_path = []
-        nearest_target = None
+        nearest_target_path = None
         min_distance = 99999
         for target in targets:
             # todo garder les valeurs en cache pour évité de recalculer
-            path = astar(self._tick_map, origin, target.position, blacklisted_positions)
-            if not path:
+            target_path = self.get_target_path(origin, target, blacklisted_positions)
+            if not target_path:
                 continue
-            distance = len(path)
+            distance = target_path.get_distance()
 
             if distance <= min_distance:
                 min_distance = distance
-                nearest_target = target
-                result_path = path
+                nearest_target_path = target_path
 
-        if nearest_target is not None:
-            return TargetPath(nearest_target, result_path)
+        return nearest_target_path
+
+    def get_target_path(self, origin: Position, target: Target, blacklisted_positions=None) -> Optional[TargetPath]:
+        if blacklisted_positions is None:
+            blacklisted_positions = []
+        path = astar(self._tick_map, origin, target.position, blacklisted_positions)
+        if path:
+            return TargetPath(target, path)
         return None
 
     def find_optimal_spawn(self, targets: List[Target]):
         optimal_spawn_and_target_path = None
         spawns = self._spawn_manager.find_all_spawn()
-        optimal_spawn = None
         min_distance = 99999
         allied_unit_positions = [unit.position for unit in self._unit_manager.get_spawned_allied_units()]
         enemy_unit_positions_in_spawn_or_with_no_gem = [unit.position for unit in
@@ -60,7 +66,8 @@ class PathFinderManager:
                 optimal_spawn_and_target_path = {"spawn": spawn, "target_path": my_target}
         return optimal_spawn_and_target_path
 
-    def simple_distance(self, position1, position2):
+    @staticmethod
+    def simple_distance(position1, position2):
         return sqrt(pow(abs(position1.x - position2.x) + 0.1, 2) + pow(abs(position1.y - position2.y) + 0.1, 2))
 
 
@@ -82,8 +89,10 @@ class Node:
         return hash(self.position)
 
 
-def astar(tickmap: TickMap, start: Position, end: Position, blacklisted_positions: List[Position] = []):
+def astar(tickmap: TickMap, start: Position, end: Position, blacklisted_positions=None):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+    if blacklisted_positions is None:
+        blacklisted_positions = []
     maze = deepcopy(tickmap.tiles)
     for b_position in blacklisted_positions:
         maze[b_position.x][b_position.y] = "WALL"

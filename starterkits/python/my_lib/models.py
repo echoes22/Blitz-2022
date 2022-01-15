@@ -19,6 +19,11 @@ class Target:
 
 
 @dataclass
+class PrioritizedTarget(Target):
+    value: int = 0
+
+
+@dataclass
 class TargetPath:
     target: Target
     path: List  # [(x, y)]
@@ -30,3 +35,13 @@ class TargetPath:
         if self.get_distance() > 1:
             return Position(self.path[1][0], self.path[1][1])
         return None
+
+
+class PrioritizedMode(Enum):
+    LONG_RANGE = 1,
+    SHORT_RANGE = 2
+
+
+@dataclass
+class PrioritizedUnit(Unit):
+    mode: PrioritizedMode = PrioritizedMode.SHORT_RANGE

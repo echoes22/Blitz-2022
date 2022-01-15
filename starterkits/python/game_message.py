@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 from enum import Enum
 from typing import List, Dict, Optional
+
+from dataclasses_json import dataclass_json
 
 
 class TileType(Enum):
@@ -25,6 +26,9 @@ class TileType(Enum):
 class Position:
     x: int
     y: int
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
 
 
 @dataclass_json
@@ -87,6 +91,12 @@ class Unit:
     diamondId: Optional[str] = None
     position: Optional[Position] = None
 
+    def __hash__(self):
+        return int(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
+    
 
 @dataclass_json
 @dataclass
