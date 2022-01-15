@@ -27,11 +27,14 @@ class ActionManager:
     def get_optimal_spawn(self, unit: PrioritizedUnit) -> CommandAction:
         # Diamonds to Target
         target_list = self.target_manager.get_available_diamond_targets_for_unit(unit)
-        destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
-        if not destination_and_target_path:
-            return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position())
-        self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)
-        return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
+        if target_list:
+            destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
+            if destination_and_target_path:
+                self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)
+                return CommandAction(action=CommandType.SPAWN, unitId=unit.id,
+                                     target=destination_and_target_path["spawn"])
+
+        return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position())
 
     def get_random_spawn_position(self) -> Position:
         spawns = self.spawn_manager.find_all_spawn()
@@ -277,12 +280,12 @@ class ActionManager:
             diffx = abs(unit.position.x - enemy_unit.position.x )
             diffy = abs(unit.position.y - enemy_unit.position.y )
             diff = diffy + diffx
-            
+
             if diff <= 1 or diff <= 2 and self.is_higher_priority(enemy_unit, unit) and unit.position in [my_corner[0] for my_corner in corners]:
                 return True
             elif self.is_higher_priority(unit, enemy_unit):
                 continue
-        
+
         return False
 
     def summoning_is_safe(self, unit: Unit, enemy_positions: List[Position]) -> bool:

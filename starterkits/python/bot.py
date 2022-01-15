@@ -2,7 +2,7 @@ import threading
 from typing import List, Optional
 
 from game_command import CommandAction
-from game_message import Tick, Team, Unit, Position, TileType
+from game_message import Tick, Team, Position, TileType
 from my_lib.action_manager import ActionManager
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.spawn_manager import SpawnManager
@@ -39,7 +39,7 @@ class Bot:
         self.action_manager.init_tick(tick)
 
         actions: List[CommandAction] = []
-        thread = threading.Thread(target=run_action, args=(self.action_manager, actions))
+        thread = threading.Thread(target=run_action, args=(self.action_manager, actions, self.corners))
         thread.start()
         thread.join(timeout=0.90)
 
@@ -78,21 +78,26 @@ class Bot:
                             haut += 1
                     except:
                         pass
-                    if (haut+bas == 1 and gauche+droite == 1):
-                        if (haut == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y + 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x-1, y + 1)))
-                        if (haut == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y + 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x+1, y + 1)))
-                        if (bas == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y - 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x-1, y - 1)))
-                        if (bas == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y - 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x+1, y - 1)))
+                    if (haut + bas == 1 and gauche + droite == 1):
+                        if (haut == 1 and gauche == 1 and self.tick.map.get_tile_type_at(
+                                Position(x - 1, y + 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y), Position(x - 1, y + 1)))
+                        if (haut == 1 and droite == 1 and self.tick.map.get_tile_type_at(
+                                Position(x + 1, y + 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y), Position(x + 1, y + 1)))
+                        if (bas == 1 and gauche == 1 and self.tick.map.get_tile_type_at(
+                                Position(x - 1, y - 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y), Position(x - 1, y - 1)))
+                        if (bas == 1 and droite == 1 and self.tick.map.get_tile_type_at(
+                                Position(x + 1, y - 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y), Position(x + 1, y - 1)))
         return corners
 
-def run_action(action_manager: ActionManager, actions: List[CommandAction]):
+
+def run_action(action_manager: ActionManager, actions: List[CommandAction], corners):
     for unit in action_manager.unit_manager.get_allied_units():
         if not unit.hasSpawned:
             spawn = action_manager.get_optimal_spawn(unit)
             actions.append(spawn)
         else:
-            actions.append(action_manager.get_optimal_move(unit))
+            actions.append(action_manager.get_optimal_move(unit, corners))

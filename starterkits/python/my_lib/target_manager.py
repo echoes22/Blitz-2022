@@ -45,8 +45,13 @@ class TargetManager:
         return PrioritizedTarget(target.target_type, target.source, target.position, value)
 
     def get_prioritized_target_list(self, unit: PrioritizedUnit) -> List[Target]:
-        return sorted([self.get_prioritized_target(unit, target) for target in self.get_diamond_targets() if
-                       self.target_is_available_for_unit(unit, target.position)], key=lambda t: t.value, reverse=True)
+        targets = []
+        for target in self.get_diamond_targets():
+            pt = self.get_prioritized_target(unit, target)
+            if pt:
+                targets.append(pt)
+        
+        return sorted(targets, key=lambda t: t.value, reverse=True)
 
     def get_target_of_unit(self, unit: Unit) -> Optional[Target]:
         return self._targets[unit]
