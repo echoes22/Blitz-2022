@@ -1,4 +1,5 @@
 import random
+
 from typing import List, Optional
 
 from game_command import CommandAction, CommandType
@@ -94,6 +95,8 @@ class Bot:
             return self.create_summon_action(unit)
         else:
             nearest_enemy_pos = self.get_nearest_enemy_position(unit, current_enemy_units_positions)
+            if nearest_enemy_pos is None:
+                return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None )
             new_pos = self.move_away_from_target_pos(unit, nearest_enemy_pos)
             return self.create_move_action(unit, new_pos)
 
@@ -110,11 +113,10 @@ class Bot:
 
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
-
         if target_path is None:
-            # todo KILLL
-            pass
-
+            # todo
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None )
+          
         # setting target
         self.target_manager.set_target_of_unit(unit, target_path.target)
 
@@ -180,6 +182,9 @@ class Bot:
         return current_enemy_unit_positions
 
     def get_nearest_enemy_position(self, unit: Unit, enemy_pos: List[Position]):
+        
+        if not enemy_pos:
+            return None
         closest_pos = enemy_pos[0]
         closest_distance = self.get_distance(unit.position, closest_pos)
         for pos in enemy_pos:
