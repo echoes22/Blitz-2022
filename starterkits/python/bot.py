@@ -4,14 +4,14 @@ from typing import List, Optional
 
 from game_command import CommandAction, CommandType
 from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
-from myLib.targetManager import TargetManager
+from my_lib.target_manager import TargetManager
 
 
 class Bot:
     def __init__(self):
         self.tick: Optional[Tick] = None
         self.target_manager: Optional[TargetManager] = None
-        self.team = Optional[Team] = None
+        self.team: Optional[Team] = None
         print("Initializing your super mega duper bot")
 
     def get_next_moves(self, tick: Tick) -> List:
