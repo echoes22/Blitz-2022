@@ -239,3 +239,6 @@ class Bot:
                 return False
         return True
         return True
+
+    def get_distance(self, origin: Position, destination: Position) -> int:
+        return self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)]).get_distance()
