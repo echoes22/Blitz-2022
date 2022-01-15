@@ -16,12 +16,13 @@ class PathFinderManager:
         nearest_target = None
         min_distance = 99999
         for target in targets:
+            # todo garder les valeurs en cache pour évité de recalculer
             path = astar(self._tick.map, origin, target.position)
             distance = len(path)
             if distance <= min_distance:
                 min_distance = distance
                 nearest_target = target
-        
+
         if nearest_target is not None:
             return TargetPath(nearest_target, path)
         return None

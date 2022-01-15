@@ -7,13 +7,14 @@ from game_message import Position, Diamond, Unit
 
 class TargetType(Enum):
     DIAMOND = "DIAMOND",
-    UNIT = "UNIT"
+    UNIT = "UNIT",
+    EMPTY = "EMPTY"
 
 
 @dataclass
 class Target:
     target_type: TargetType
-    target: Union[Diamond, Unit]
+    source: Union[Diamond, Unit, None]
     position: Position
 
 
@@ -21,3 +22,6 @@ class Target:
 class TargetPath:
     target: Target
     path: List  # [(x, y)]
+
+    def get_distance(self):
+        return len(self.path)

@@ -17,7 +17,7 @@ class TargetManager:
         return self._targets[unit.id] is not None
 
     def set_target_of_unit(self, unit: Unit, target: Target) -> bool:
-        if self.target_is_available_for_unit(unit, target):
+        if self.target_is_available_for_unit(unit, target.position):
             self._targets[unit.id] = target
             return True
         return False
