@@ -21,7 +21,7 @@ class PathFinderManager:
             if not path:
                 continue
             distance = len(path)
-            
+
             if distance <= min_distance:
                 min_distance = distance
                 nearest_target = target
@@ -52,7 +52,7 @@ class PathFinderManager:
                 min_distance = len(my_target.path)
                 optimal_spawn_and_target_path = {"spawn": spawn,"target_path" :my_target }
         return optimal_spawn_and_target_path
-            
+
 
 
 class Node:
@@ -82,6 +82,9 @@ def astar(tickmap: TickMap, start: Position, end: Position):
     start_node.g = start_node.h = start_node.f = 0
     end_node = Node(None, (end.x, end.y))
     end_node.g = end_node.h = end_node.f = 0
+
+    if start_node == end_node:
+        return None
 
     # Initialize both open and closed list
     open_list = []

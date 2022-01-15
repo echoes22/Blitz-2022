@@ -33,7 +33,6 @@ class Bot:
 
         for unit in self.team.units:
             if not unit.hasSpawned:
-
                 actions.append(self.get_optimal_spawn(unit))
 
             else:
@@ -120,7 +119,9 @@ class Bot:
         self.target_manager.set_target_of_unit(unit, target_path.target)
 
         # move to next position
-        return self.create_move_action(unit, Position(target_path.path[1][0], target_path.path[1][1]))
+        next_position = target_path.get_next_position()
+
+        return self.create_move_action(unit, next_position)
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
@@ -237,7 +238,7 @@ class Bot:
 
     def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
         for pos in enemy_pos:
-            if self.get_distance(unit.position, pos) <= 2:
+            if self.get_distance(unit.position, pos) <= 1:
                 return True
         return False
 
@@ -245,7 +246,7 @@ class Bot:
         # inefficient
         unit_diamond = [x for x in self.tick.map.diamonds if x.id == unit.diamondId][0]
         for pos in enemy_positions:
-            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel + 1:
+            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel:
                 return False
         return True
 

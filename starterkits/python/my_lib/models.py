@@ -25,3 +25,8 @@ class TargetPath:
 
     def get_distance(self):
         return len(self.path)
+
+    def get_next_position(self):
+        if self.get_distance() > 1:
+            return Position(self.path[1][0], self.path[1][1])
+        return None
