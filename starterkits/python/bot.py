@@ -60,6 +60,8 @@ class Bot:
         return spawns[random.randint(0, len(spawns) - 1)]
 
     def get_optimal_move(self, unit: Unit) -> CommandAction:
+        if not unit.hasDiamond:
+            return self.move_to_nearest_diamond(unit)
         if self.tick.tick == self.tick.totalTick - 1 and unit.hasDiamond:
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7 
@@ -68,7 +70,8 @@ class Bot:
                 and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
             ):
             return self.create_summon_action(unit)
-        return self.move_to_nearest_diamond(unit)
+        else:
+            return self.create_move_action(unit, self.get_random_position(self.tick.map))
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         diamond = self.find_nearest_diamond(unit)
