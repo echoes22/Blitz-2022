@@ -80,8 +80,8 @@ class Bot:
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         # sorting advailable targets
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
-                              diamond.ownerId and self.target_manager.target_is_available_for_unit(unit,
-                                                                                                   diamond.position)]
+                              diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit,
+                                                                                                           diamond.position)]
         # todo voir si une autre unit serait plus proche du target
 
         # formating targets
