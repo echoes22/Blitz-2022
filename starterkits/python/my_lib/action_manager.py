@@ -32,7 +32,7 @@ class ActionManager:
 
         destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
         if not destination_and_target_path:
-            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=self.get_random_spawn_position())
+            return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position())
         self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)
         return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
 
