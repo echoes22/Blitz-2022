@@ -26,6 +26,28 @@ class PathFinderManager:
         if nearest_target is not None:
             return TargetPath(nearest_target, path)
         return None
+    
+    
+    def find_all_spawn(self) -> List[Position]:
+        game_map = self._tick.map.tiles
+        spawns = []
+        for x in len(game_map):
+            for y in range(x):
+                if self._tick.map.get_tile_type_at(Position(x,y)) == TileType.SPAWN:
+                    spawns.append(Position(x,y))
+        return spawns
+
+    def find_optimal_spawn(self, targets: List[Target]):
+        spawns = self.find_all_spawn()
+        optimal_spawn = None
+        min_distance = 99999
+        for spawn in spawns:
+            my_target = self.get_nearest_target(spawn, targets)
+            if len(my_target.path) <=min_distance:
+                min_distance = len(my_target.path)
+                optimal_spawn = spawn
+        return optimal_spawn
+            
 
 
 class Node:
