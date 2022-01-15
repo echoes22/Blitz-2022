@@ -19,6 +19,9 @@ class PathFinderManager:
             # todo garder les valeurs en cache pour évité de recalculer
             path = astar(self._tick.map, origin, target.position)
             distance = len(path)
+            if not path:
+                continue
+
             if distance <= min_distance:
                 min_distance = distance
                 nearest_target = target
@@ -26,8 +29,8 @@ class PathFinderManager:
         if nearest_target is not None:
             return TargetPath(nearest_target, path)
         return None
-    
-    
+
+
     def find_all_spawn(self) -> List[Position]:
         game_map = self._tick.map.tiles
         spawns = []
@@ -47,7 +50,7 @@ class PathFinderManager:
                 min_distance = len(my_target.path)
                 optimal_spawn = spawn
         return optimal_spawn
-            
+
 
 
 class Node:
