@@ -1,10 +1,11 @@
 import threading
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from game_command import CommandAction
-from game_message import Tick, Team, Unit
+from game_message import Tick, Team, Unit, TickMap, TileType
 from my_lib.action_manager import ActionManager
 from my_lib.unit_manager import UnitManager
+from game_message import Position
 
 
 class Bot:
@@ -12,6 +13,7 @@ class Bot:
         self.tick: Optional[Tick] = None
         self.team: Optional[Team] = None
         self.unit_manager = UnitManager()
+        self.corners = None
         print("Initializing your super mega duper bot")
 
     def get_next_moves(self, tick: Tick) -> List:
@@ -22,6 +24,12 @@ class Bot:
         it in the next turns.
         """
         self.tick = tick
+        if self.tick.tick == 0 :
+            self.corners = self.find_corners()
+            print(self.corners)
+
+
+
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.unit_manager.init_tick(tick, self.team, [unit for team in self.tick.teams for unit in team.units])
 
@@ -34,6 +42,50 @@ class Bot:
 
         return actions
 
+    def find_corners(self):
+        game_map = self.tick.map.tiles
+        corners = []
+        for x in range(len(game_map)):
+            for y in range(len(game_map[x])):
+                gauche = 0
+                droite = 0
+                bas = 0
+                haut = 0
+                if self.tick.map.get_tile_type_at(Position(x, y)) == TileType.EMPTY:
+                    try:
+                        if self.tick.map.get_tile_type_at(Position(x - 1, y)) == TileType.EMPTY:
+                            gauche += 1
+                    except:
+                        pass
+
+                    try:
+                        if self.tick.map.get_tile_type_at(Position(x, y - 1)) == TileType.EMPTY:
+                            bas += 1
+                    except:
+                        pass
+
+                    try:
+                        if self.tick.map.get_tile_type_at(Position(x + 1, y)) == TileType.EMPTY:
+                            droite += 1
+                    except:
+                        pass
+
+                    try:
+                        if self.tick.map.get_tile_type_at(Position(x, y + 1)) == TileType.EMPTY:
+                            haut += 1
+                    except:
+                        pass
+                    if (haut+bas == 1 and gauche+droite == 1):
+                        if (haut == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y + 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y),Position(x-1, y + 1)))
+                        if (haut == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y + 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y),Position(x+1, y + 1)))
+                        if (bas == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y - 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y),Position(x-1, y - 1)))
+                        if (bas == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y - 1)) == TileType.EMPTY):
+                            corners.append((Position(x, y),Position(x+1, y - 1)))
+        return corners
+
 
 def run_action(action_manager: ActionManager, team_units: List[Unit], actions: List[CommandAction]):
     for unit in team_units:
@@ -42,3 +94,5 @@ def run_action(action_manager: ActionManager, team_units: List[Unit], actions: L
             actions.append(spawn)
         else:
             actions.append(action_manager.get_optimal_move(unit))
+
+

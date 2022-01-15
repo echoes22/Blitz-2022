@@ -26,15 +26,9 @@ class PathFinderManager:
             path = astar(self._tick_map, origin, target.position, blacklisted_positions)
             if not path:
                 continue
-            distance = len(path)
-
-            if distance <= min_distance:
-                min_distance = distance
-                nearest_target = target
-                result_path = path
-
-        if nearest_target is not None:
-            return TargetPath(nearest_target, result_path)
+            else:
+                return TargetPath(target, path)
+            
         return None
 
     def find_all_spawn(self) -> List[Position]:
