@@ -93,7 +93,7 @@ class ActionManager:
                         not e_unit.hasDiamond and self.tick.map.get_tile_type_at(e_unit.position) == TileType.EMPTY]
         target_path = self.pathfinder.get_nearest_target(unit.position, free_enemies)
         if target_path:
-            return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=target_path.get_next_position())
+            return self.create_move_action(unit, target_path.get_next_position())
         return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
