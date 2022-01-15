@@ -79,7 +79,7 @@ class Bot:
     def get_optimal_move(self, unit: Unit) -> CommandAction:
         if unit.hasDiamond:
             return self.get_optimal_hodler_move(unit)
-        elif not unit.hasDiamond:
+        else:
             return self.move_to_nearest_diamond(unit)
 
     def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
@@ -104,33 +104,11 @@ class Bot:
             return self.create_move_action(unit, new_pos)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
-        # sorting advailable targets
-        untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
-                              diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit,
-                                                                                                           diamond.position)]
         # todo voir si une autre unit serait plus proche du target
-
-        # formating targets
-        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
-                       untargeted_diamond]
-
-        allies_position = [unit.position for unit in self.ally_units]
-        # finding nearest diamond
-        target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
-        if target_path is None:
-            return self.move_in_position_to_attack(unit)
-
-        # setting target
-        self.target_manager.set_target_of_unit(unit, target_path.target)
-
-        # move to next position
-        next_position = target_path.get_next_position()
-
-        return self.create_move_action(unit, next_position)
-
-    def move_in_position_to_attack(self, unit: Unit) -> CommandAction:
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
-                              self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+                              self.target_manager.target_is_available_for_unit(unit,
+                                                                               diamond.position)]
+
         # formating targets
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
@@ -138,12 +116,11 @@ class Bot:
         allies_position = [unit.position for unit in self.ally_units]
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
-
-        # setting target
-        self.target_manager.set_target_of_unit(unit, target_path.target)
-
         if target_path is None:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+
+        # setting target
+        self.target_manager.set_target_of_unit(unit, target_path.target)
 
         # move to next position
         next_position = target_path.get_next_position()
