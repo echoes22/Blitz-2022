@@ -78,13 +78,17 @@ class Bot:
         # sorting advailable targets
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
                               self.target_manager.target_is_available_for_unit(unit, diamond.position)]
-        
+        # formating targets
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
-                       untargeted_diamond]  # todo filter out already selected target
-        target = self.pathfinder.get_nearest_target(unit.position, target_list)
-        self.target_manager.set_target_of_unit(unit, target.target)
+                       untargeted_diamond]
 
-        return self.create_move_action(unit, diamond.position)
+        # finding nearest diamond
+        target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
+        # setting target
+        self.target_manager.set_target_of_unit(unit, target_path.target)
+
+        # move to next position
+        return self.create_move_action(unit, Position(target_path.path[0][0], target_path.path[0][1]))
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
@@ -121,6 +125,3 @@ class Bot:
                 return pos
         except:
             pass
-
-    def get_path(self, pos1: Position, pos2: Position):
-        return astar(self.tick.map,pos1,pos2)
