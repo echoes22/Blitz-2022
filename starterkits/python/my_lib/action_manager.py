@@ -31,16 +31,10 @@ class ActionManager:
                        untargeted_diamond]
 
         destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
-        print(destination_and_target_path)
         if not destination_and_target_path:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
         self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)
         return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
-
-    def get_random_position(self) -> Position:
-        return Position(
-            random.randint(0, self.tick.map.get_map_size_x() - 1), random.randint(0, self.tick.map.get_map_size_y() - 1)
-        )
 
     def get_random_spawn_position(self) -> Position:
         spawns: List[Position] = []
@@ -105,10 +99,38 @@ class ActionManager:
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         if not unit.hasDiamond:
-            if destination in self.get_current_enemy_units_positions():
-                if self.tick.map.get_tile_type_at(destination) == TileType.SPAWN:
-                    return self.create_move_action(unit, self.get_random_position())
-                return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=destination)
+            enemies_nearby = [enemies for enemies in self.enemy_units if
+                              self.tick.map.get_tile_type_at(
+                                  enemies.position) == TileType.EMPTY and self.pathfinder.simple_distance(
+                                  enemies.position, unit.position) < 1.5]
+            if enemies_nearby:
+                if self.tick.map.get_tile_type_at(unit.position) == TileType.EMPTY:
+                    return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=enemies_nearby[0].position)
+                else:
+                    delta_x = enemies_nearby[0].position.x - unit.position.x
+                    if delta_x:  # si delta_x ça veux dire qu'il est à droite ou à gauche
+                        try:
+                            pos = Position(enemies_nearby[0].position.x + 1, enemies_nearby[0].position.y)
+                            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
+
+                            pos = Position(enemies_nearby[0].position.x - 1, enemies_nearby[0].position.y)
+                            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
+                        except:
+                            pass
+                    else:
+                        try:
+                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y + 1)
+                            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
+
+                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y - 1)
+                            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
+                        except:
+                            pass
+                return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.find_free_adjacent_tile(unit))
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
 
     def create_drop_action(self, unit: Unit) -> CommandAction:

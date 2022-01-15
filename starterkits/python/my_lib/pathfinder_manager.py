@@ -1,4 +1,5 @@
 from copy import deepcopy
+from math import sqrt
 from typing import List
 
 from game_message import Position, TickMap, TileType, Unit
@@ -92,6 +93,9 @@ class PathFinderManager:
                 min_distance = len(my_target.path)
                 optimal_spawn_and_target_path = {"spawn": spawn, "target_path": my_target}
         return optimal_spawn_and_target_path
+
+    def simple_distance(self, position1, position2):
+        return sqrt(pow(abs(position1.x - position2.x) + 0.1, 2) + pow(abs(position1.y - position2.y) + 0.1, 2))
 
 
 class Node:
