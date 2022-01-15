@@ -18,9 +18,9 @@ class PathFinderManager:
         for target in targets:
             # todo garder les valeurs en cache pour évité de recalculer
             path = astar(self._tick.map, origin, target.position)
-            distance = len(path)
             if not path:
                 continue
+            distance = len(path)
 
             if distance <= min_distance:
                 min_distance = distance
