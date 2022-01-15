@@ -52,7 +52,7 @@ class ActionManager:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
         if self.tick.tick == self.tick.totalTick - 1:
             return self.create_drop_action(unit)
-        elif self.position_is_dangerous(unit, current_enemy_units_positions):
+        elif self.position_is_dangerous(unit):
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7
               and not unit.isSummoning
@@ -277,13 +277,18 @@ class ActionManager:
 
         return best_position
 
-    def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
-        for pos in enemy_pos:
-            diffx = abs(unit.position.x - pos.x )
-            diffy = abs(unit.position.y - pos.y )
+    def position_is_dangerous(self, unit: Unit) -> bool:
+        current_enemy_units = [unit for unit in self.unit_manager.get_spawned_enemy_units()]
+        for enemy_unit in current_enemy_units:
+            diffx = abs(unit.position.x - enemy_unit.position.x )
+            diffy = abs(unit.position.y - enemy_unit.position.y )
             diff = diffy + diffx
-            if diff <= 1:
+            
+            if diff <= 1 or diff <= 2 and self.is_higher_priority(enemy_unit, unit):
                 return True
+            elif self.is_higher_priority(unit, enemy_unit):
+                continue
+        
         return False
 
     def summoning_is_safe(self, unit: Unit, enemy_positions: List[Position]) -> bool:
@@ -302,8 +307,14 @@ class ActionManager:
     def is_higher_priority(self, unit1: Unit, unit2: Unit):
             return self.get_team_priority_level(unit1.teamId) < self.get_team_priority_level(unit2.teamId)
 
+    def is_higher_priority_in_2_turns(self, unit1: Unit, unit2: Unit):
+            return self.get_team_priority_level_in_2_turns(unit1.teamId) < self.get_team_priority_level(unit2.teamId)
+
     def get_team_priority_level(self, team_id: str) -> int:
         return self.tick.teamPlayOrderings[str(self.tick.tick+1)].index(team_id)
+
+    def get_team_priority_level_in_2_turns(self, team_id: str) -> int:
+        return self.tick.teamPlayOrderings[str(self.tick.tick+2)].index(team_id)
 
     def get_unit_los(self, unit: Unit) -> List[Position]:
         # aucune los si sur spawn pour pas viner from spawn
