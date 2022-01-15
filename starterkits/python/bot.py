@@ -60,8 +60,14 @@ class Bot:
         return spawns[random.randint(0, len(spawns) - 1)]
 
     def get_optimal_move(self, unit: Unit) -> CommandAction:
-        if self.tick.tick == self.tick.totalTick - 1:
+        if self.tick.tick == self.tick.totalTick - 1 and unit.hasDiamond:
             return self.create_drop_action(unit)
+        elif (self.tick.tick < self.tick.totalTick - 7 
+                and unit.hasDiamond 
+                and not unit.isSummoning
+                and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
+            ):
+            return self.create_summon_action(unit)
         return self.move_to_nearest_diamond(unit)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
@@ -92,6 +98,9 @@ class Bot:
     def create_drop_action(self, unit: Unit) -> CommandAction:
         droppable_pos = self.find_free_adjacent_tile(unit)
         return CommandAction(action=CommandType.DROP, unitId=unit.id, target=droppable_pos)
+
+    def create_summon_action(self, unit: Unit) -> CommandAction:
+        return CommandAction(action=CommandType.SUMMON, unitId=unit.id, target=None)
 
     def find_free_adjacent_tile(self, unit: Unit) -> Position:
         try:
