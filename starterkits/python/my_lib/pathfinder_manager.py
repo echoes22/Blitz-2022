@@ -1,23 +1,33 @@
-from typing import Optional, List
+from copy import deepcopy
+from typing import List
 
-from game_message import Tick, Position, TickMap, TileType
+from game_message import Position, TickMap, TileType, Unit
 from my_lib.models import Target, TargetPath
 
 
 class PathFinderManager:
-    def __init__(self, tick: Optional[Tick] = None):
-        self._tick: Optional[Tick] = tick
+    def __init__(self):
+        self._tick_map: TickMap = None
+        self._enemy_units: List[Unit] = []
+        self._ally_units: List[Unit] = []
 
-    def set_tick(self, tick: Tick):
-        self._tick = tick
+    def set_tick_map(self, tick_map: TickMap):
+        self._tick_map = tick_map
 
-    def get_nearest_target(self, origin: Position, targets: List[Target]) -> TargetPath:
-        path = []
+    def set_enemy_units(self, enemy_units: List[Unit]):
+        self._enemy_units = enemy_units
+
+    def set_ally_units(self, ally_units: List[Unit]):
+        self._ally_units = ally_units
+
+    def get_nearest_target(self, origin: Position, targets: List[Target],
+                           blacklisted_positions: List[Position] = []) -> TargetPath:
+        result_path = []
         nearest_target = None
         min_distance = 99999
         for target in targets:
             # todo garder les valeurs en cache pour évité de recalculer
-            path = astar(self._tick.map, origin, target.position)
+            path = astar(self._tick_map, origin, target.position, blacklisted_positions)
             if not path:
                 continue
             distance = len(path)
@@ -25,34 +35,38 @@ class PathFinderManager:
             if distance <= min_distance:
                 min_distance = distance
                 nearest_target = target
+                result_path = path
 
         if nearest_target is not None:
-            return TargetPath(nearest_target, path)
+            return TargetPath(nearest_target, result_path)
         return None
 
-
     def find_all_spawn(self) -> List[Position]:
-        game_map = self._tick.map.tiles
+        game_map = self._tick_map.tiles
         spawns = []
         for x in range(len(game_map)):
             for y in range(len(game_map[x])):
-                if self._tick.map.get_tile_type_at(Position(x,y)) == TileType.SPAWN:
-                    spawns.append(Position(x,y))
+                if self._tick_map.get_tile_type_at(Position(x, y)) == TileType.SPAWN:
+                    spawns.append(Position(x, y))
         return spawns
 
     def find_optimal_spawn(self, targets: List[Target]):
+        optimal_spawn_and_target_path = None
         spawns = self.find_all_spawn()
         optimal_spawn = None
         min_distance = 99999
-        for spawn in spawns:
-            my_target = self.get_nearest_target(spawn, targets)
-            if my_target.path is None:
-                continue
-            if len(my_target.path) <=min_distance:
-                min_distance = len(my_target.path)
-                optimal_spawn_and_target_path = {"spawn": spawn,"target_path" :my_target }
-        return optimal_spawn_and_target_path
+        unit_positions = [unit.position for unit in self._ally_units] + [unit.position for unit in self._enemy_units]
 
+        print([f"{position.x} {position.y}" for position in unit_positions])
+        for spawn in spawns:
+            my_target = self.get_nearest_target(spawn, targets, unit_positions)
+            if my_target is None:
+                continue
+            distance = my_target.get_distance()
+            if distance <= min_distance:
+                min_distance = len(my_target.path)
+                optimal_spawn_and_target_path = {"spawn": spawn, "target_path": my_target}
+        return optimal_spawn_and_target_path
 
 
 class Node:
@@ -73,9 +87,11 @@ class Node:
         return hash(self.position)
 
 
-def astar(tickmap: TickMap, start: Position, end: Position):
+def astar(tickmap: TickMap, start: Position, end: Position, blacklisted_positions: List[Position] = []):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
-    maze = tickmap.tiles
+    maze = deepcopy(tickmap.tiles)
+    for b_position in blacklisted_positions:
+        maze[b_position.x][b_position.y] = "WALL"
     # Create start and end node
     start_node = Node(None, (start.x, start.y))
 
@@ -95,6 +111,9 @@ def astar(tickmap: TickMap, start: Position, end: Position):
     counter = 0
     # Loop until you find the end
     while len(open_list) > 0:
+        if counter > 100:
+            return None
+        counter += 1
 
         # Get the current node
         current_node = open_list[0]
@@ -129,7 +148,8 @@ def astar(tickmap: TickMap, start: Position, end: Position):
                     len(maze[len(maze) - 1]) - 1) or node_position[1] < 0:
                 continue
 
-            if tickmap.get_tile_type_at(Position(node_position[0], node_position[1])) == TileType.SPAWN:
+            if (tickmap.get_tile_type_at(Position(node_position[0], node_position[1])) == TileType.SPAWN
+                    and tickmap.get_tile_type_at(start) == TileType.SPAWN):
                 condition = ["SPAWN", "EMPTY"]
             else:
                 condition = ["EMPTY"]

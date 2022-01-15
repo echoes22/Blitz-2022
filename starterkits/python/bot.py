@@ -1,5 +1,4 @@
 import random
-
 from typing import List, Optional
 
 from game_command import CommandAction, CommandType
@@ -16,6 +15,8 @@ class Bot:
         self.target_manager: Optional[TargetManager] = None
         self.team: Optional[Team] = None
         self.pathfinder = PathFinderManager()
+        self.enemy_units: List[Unit] = []
+        self.ally_units: List[Unit] = []
         print("Initializing your super mega duper bot")
 
     def get_next_moves(self, tick: Tick) -> List:
@@ -28,7 +29,11 @@ class Bot:
         self.tick = tick
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.target_manager = TargetManager(self.team.units, tick.map)
-        self.pathfinder.set_tick(tick)
+        self.enemy_units = self.get_current_enemy_units()
+        self.ally_units = [unit for unit in self.team.units if unit.hasSpawned]
+        self.pathfinder.set_tick_map(tick.map)
+        self.pathfinder.set_enemy_units(self.enemy_units)
+        self.pathfinder.set_ally_units(self.ally_units)
 
         actions: List = []
 
@@ -41,25 +46,26 @@ class Bot:
                     self.get_optimal_move(unit)
                 )
 
-            # CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.get_random_position(tick.map))
-
         return actions
 
     def get_optimal_spawn(self, unit: Unit)->CommandAction:
         # Diamonds to Target
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
-                             diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+                              diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit,
+                                                                                                           diamond.position)]
 
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
 
         destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
-        self.target_manager.set_target_of_unit(unit,destination_and_target_path["target_path"].target)
+        if not destination_and_target_path:
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+        self.target_manager.set_target_of_unit(unit, destination_and_target_path["target_path"].target)
         return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
 
-    def get_random_position(self, tick_map: TickMap) -> Position:
+    def get_random_position(self) -> Position:
         return Position(
-            random.randint(0, tick_map.get_map_size_x() - 1), random.randint(0, tick_map.get_map_size_y() - 1)
+            random.randint(0, self.tick.map.get_map_size_x() - 1), random.randint(0, self.tick.map.get_map_size_y() - 1)
         )
 
     def get_random_spawn_position(self, tick_map: TickMap) -> Position:
@@ -114,9 +120,9 @@ class Bot:
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
         if target_path is None:
-            # todo
-            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None )
-          
+            # todo kill mode
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+
         # setting target
         self.target_manager.set_target_of_unit(unit, target_path.target)
 
@@ -126,6 +132,11 @@ class Bot:
         return self.create_move_action(unit, next_position)
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
+        if not unit.hasDiamond:
+            if destination in self.get_current_enemy_units_positions():
+                if self.tick.map.get_tile_type_at(destination) == TileType.SPAWN:
+                    return self.create_move_action(unit, self.get_random_position())
+                return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=destination)
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
 
     def create_drop_action(self, unit: Unit) -> CommandAction:
@@ -173,16 +184,20 @@ class Bot:
                 current_unit_positions.append(unit.position)
         return current_unit_positions
 
-    def get_current_enemy_units_positions(self):
-        current_enemy_unit_positions = []
+    def get_current_enemy_units(self) -> List[Unit]:
+        current_enemy_units = []
         for team in self.tick.teams:
             if team.id != self.tick.teamId:
                 for unit in team.units:
-                    current_enemy_unit_positions.append(unit.position)
-        return current_enemy_unit_positions
+                    if unit.hasSpawned:
+                        current_enemy_units.append(unit)
+        return current_enemy_units
+
+    def get_current_enemy_units_positions(self):
+        return [unit.position for unit in self.enemy_units]
 
     def get_nearest_enemy_position(self, unit: Unit, enemy_pos: List[Position]):
-        
+
         if not enemy_pos:
             return None
         closest_pos = enemy_pos[0]
@@ -198,44 +213,57 @@ class Bot:
         current_unit_positions = self.get_current_unit_positions()
         current_distance = self.get_distance(unit.position, target_pos)
         best_position = unit.position
+
+        diamond_list_position_on_ground = [diamond.position for diamond in self.tick.map.diamonds if
+                                           not diamond.ownerId]
+
         try:
             new_pos = Position(unit.position.x - 1, unit.position.y)
-            new_distance = self.get_distance(new_pos, target_pos)
-            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
-                and new_pos not in current_unit_positions
-                and new_distance > current_distance):
-                best_position = new_pos
-                current_distance = new_distance
+            is_diamond_on_ground = [position for position in diamond_list_position_on_ground if
+                                    position.x == new_pos.x and position.y == new_pos.y]
+            if self.tick.map.get_tile_type_at(new_pos) == TileType.EMPTY and not is_diamond_on_ground:
+                new_distance = self.get_distance(new_pos, target_pos)
+
+                if new_pos not in current_unit_positions and new_distance > current_distance:
+                    best_position = new_pos
+                    current_distance = new_distance
+
         except:
             pass
         try:
             new_pos = Position(unit.position.x + 1, unit.position.y)
-            new_distance = self.get_distance(new_pos, target_pos)
-            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
-                and new_pos not in current_unit_positions
-                and new_distance > current_distance):
-                best_position = new_pos
-                current_distance = new_distance
+            is_diamond_on_ground = [position for position in diamond_list_position_on_ground if
+                                    position.x == new_pos.x and position.y == new_pos.y]
+            if self.tick.map.get_tile_type_at(new_pos) == TileType.EMPTY and not is_diamond_on_ground:
+                new_distance = self.get_distance(new_pos, target_pos)
+
+                if new_pos not in current_unit_positions and new_distance > current_distance:
+                    best_position = new_pos
+                    current_distance = new_distance
         except:
             pass
         try:
             new_pos = Position(unit.position.x, unit.position.y - 1)
-            new_distance = self.get_distance(new_pos, target_pos)
-            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
-                and new_pos not in current_unit_positions
-                and new_distance > current_distance):
-                best_position = new_pos
-                current_distance = new_distance
+            is_diamond_on_ground = [position for position in diamond_list_position_on_ground if
+                                    position.x == new_pos.x and position.y == new_pos.y]
+            if self.tick.map.get_tile_type_at(new_pos) == TileType.EMPTY and not is_diamond_on_ground:
+                new_distance = self.get_distance(new_pos, target_pos)
+
+                if new_pos not in current_unit_positions and new_distance > current_distance:
+                    best_position = new_pos
+                    current_distance = new_distance
         except:
             pass
         try:
             new_pos = Position(unit.position.x, unit.position.y + 1)
-            new_distance = self.get_distance(new_pos, target_pos)
-            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
-                and new_pos not in current_unit_positions
-                and new_distance > current_distance):
-                best_position = new_pos
-                current_distance = new_distance
+            is_diamond_on_ground = [position for position in diamond_list_position_on_ground if
+                                    position.x == new_pos.x and position.y == new_pos.y]
+            if self.tick.map.get_tile_type_at(new_pos) == TileType.EMPTY and not is_diamond_on_ground:
+                new_distance = self.get_distance(new_pos, target_pos)
+
+                if new_pos not in current_unit_positions and new_distance > current_distance:
+                    best_position = new_pos
+                    current_distance = new_distance
         except:
             pass
 
@@ -251,7 +279,7 @@ class Bot:
         # inefficient
         unit_diamond = [x for x in self.tick.map.diamonds if x.id == unit.diamondId][0]
         for pos in enemy_positions:
-            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel:
+            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel + 2:
                 return False
         return True
 
