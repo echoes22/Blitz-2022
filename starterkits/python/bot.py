@@ -34,7 +34,7 @@ class Bot:
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.unit_manager.init_tick(tick, self.team, [unit for team in self.tick.teams for unit in team.units])
 
-        action_manager = ActionManager(tick, self.unit_manager)
+        action_manager = ActionManager(tick, self.unit_manager, self.used_corner)
 
         actions: List[CommandAction] = []
         thread = threading.Thread(target=run_action, args=(action_manager, self.team.units, actions, self.used_corner))
@@ -94,12 +94,15 @@ def run_action(action_manager: ActionManager, team_units: List[Unit], actions: L
             spawn = action_manager.get_optimal_spawn(unit)
             actions.append(spawn)
         else:
+            if len(team_units) > 2:
             # CORNER_LAD
-            if unit == team_units[0]:
-                actions.append(action_manager.get_optimal_cornerlad_move(unit, corner))
-            #DEFENDER
-            elif unit == team_units[1]:
-                actions.append(action_manager.get_optimal_defender_move(unit, corner))
+                if unit == team_units[0]:
+                    actions.append(action_manager.get_optimal_cornerlad_move(unit))
+                #DEFENDER
+                elif unit == team_units[1]:
+                    actions.append(action_manager.get_optimal_defender_move(unit))
+                else:
+                    actions.append(action_manager.get_optimal_move(unit))
             else:
                 actions.append(action_manager.get_optimal_move(unit))
 

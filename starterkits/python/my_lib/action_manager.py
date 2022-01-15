@@ -10,12 +10,15 @@ from my_lib.unit_manager import UnitManager
 
 
 class ActionManager:
-    def __init__(self, tick: Tick, unit_manager: UnitManager):
+    def __init__(self, tick: Tick, unit_manager: UnitManager, corner: Corner):
         self.tick: Tick = tick
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.target_manager = TargetManager(self.team.units, tick.map)
         self.pathfinder = PathFinderManager(unit_manager)
         self.pathfinder.set_tick_map(tick.map)
+        self.pathfinder.set_enemy_units(self.enemy_units)
+        self.pathfinder.set_ally_units(self.ally_units)
+        self.corner: Corner = corner
         self.unit_manager = unit_manager
 
     def get_optimal_spawn(self, unit: Unit) -> CommandAction:
@@ -40,10 +43,20 @@ class ActionManager:
         else:
             return self.move_to_nearest_diamond(unit)
 
-
-    def get_optimal_cornerlad_move(self, unit: Unit, corner) -> CommandAction:
+    
+    def get_optimal_cornerlad_move(self, unit: Unit) -> CommandAction:
+        untargeted_diamond_pos = [diamond.position for diamond in self.tick.map.diamonds if diamond.ownerId is None]
+        if self.corner[0] in untargeted_diamond_pos:
+            if unit.hasDiamond:
+                return self.create_drop_action(unit) 
+            return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.corner[0])
+        
         if not unit.hasDiamond:
             return self.move_to_nearest_diamond(unit)
+
+        
+
+
 
 
         current_enemy_units_positions = self.get_current_enemy_units_positions()
@@ -52,12 +65,12 @@ class ActionManager:
         if self.tick.tick == self.tick.totalTick - 1:
             return self.create_drop_action(unit)  
 
-        elif unit.position != corner[0] :
+        elif unit.position != self.corner[0] :
             my_corner = Corner
-            my_corner.position = corner[0]
-            my_target =  Target(TargetType.CORNER, my_corner, corner[0])
+            my_corner.position = self.corner[0]
+            my_target =  Target(TargetType.CORNER, my_corner, self.corner[0])
 
-            allies_position = []
+            allies_position = [unit.position for unit in self.ally_units]
             target_path = self.pathfinder.get_nearest_target(unit.position, [my_corner], allies_position)
             # setting target
             self.target_manager.set_target_of_unit(unit, my_target)
@@ -65,7 +78,7 @@ class ActionManager:
             # move to next position
             next_position = target_path.get_next_position()
 
-            return self.create_move_action(unit, next_position)
+            return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=next_position)
 
 
         elif (self.tick.tick < self.tick.totalTick - 7
@@ -77,7 +90,7 @@ class ActionManager:
         else:
             return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None) 
 
-    def get_optimal_defender_move(self, unit: Unit, corner) -> CommandAction:
+    def get_optimal_defender_move(self, unit: Unit) -> CommandAction:
         if unit.hasDiamond:
             return self.create_drop_action(unit) 
 
@@ -87,19 +100,30 @@ class ActionManager:
         if self.tick.tick == self.tick.totalTick - 1:
             return self.create_drop_action(unit)  
 
-        elif unit.position != corner[1] :
+        elif unit.position != self.corner[1] :
             my_corner = Corner
-            my_corner.position = corner[1]
-            my_target =  Target(TargetType.CORNER, my_corner, corner[1])
+            my_corner.position = self.corner[1]
+            my_target =  Target(TargetType.CORNER, my_corner, self.corner[1])
 
-            allies_position = []
+            allies_position = [unit.position for unit in self.ally_units]
             target_path = self.pathfinder.get_nearest_target(unit.position, [my_corner], allies_position)
             # setting target
             self.target_manager.set_target_of_unit(unit, my_target)
 
             # move to next position
+            # PERTE DE 1 TOUR??? ON ARRANGE ÇA?
             next_position = target_path.get_next_position()
             return self.create_move_action(unit, next_position)
+        else:
+            enemies_nearby = [enemies for enemies in self.enemy_units if
+                              self.tick.map.get_tile_type_at(
+                                  enemies.position) == TileType.EMPTY and self.pathfinder.simple_distance(
+                                  enemies.position, unit.position) < 1.5]
+            if enemies_nearby:
+                if self.tick.map.get_tile_type_at(unit.position) == TileType.EMPTY:
+                    return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=enemies_nearby[0].position)
+            else:
+                return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None) 
         
 
     def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
@@ -125,6 +149,13 @@ class ActionManager:
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         # todo voir si une autre unit serait plus proche du target
+        untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
+                              self.target_manager.target_is_available_for_unit(unit,
+                                                                               diamond.position)]
+    
+        untargeted_diamond = [diamond for diamond in untargeted_diamond  if diamond.position not in  [self.corner[0],self.corner[1]]]
+
+
         # formating targets
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        self.unit_manager.get_available_diamonds() if
