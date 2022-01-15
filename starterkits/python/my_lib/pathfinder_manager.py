@@ -21,8 +21,7 @@ class PathFinderManager:
             if not path:
                 continue
             distance = len(path)
-            if distance is None:
-                continue
+            
             if distance <= min_distance:
                 min_distance = distance
                 nearest_target = target

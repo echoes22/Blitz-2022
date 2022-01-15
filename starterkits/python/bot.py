@@ -35,7 +35,7 @@ class Bot:
             if not unit.hasSpawned:
 
                 actions.append(self.get_optimal_spawn(unit))
-        
+
             else:
                 actions.append(
                     self.get_optimal_move(unit)
@@ -49,7 +49,7 @@ class Bot:
         # Diamonds to Target
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
                              diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit, diamond.position)]
-        
+
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
 
@@ -111,9 +111,9 @@ class Bot:
 
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
-        print(target_path)
+
         if target_path is None:
-            # todo
+            # todo KILLL
             pass
 
         # setting target
