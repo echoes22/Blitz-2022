@@ -9,12 +9,15 @@ class TargetType(Enum):
     DIAMOND = "DIAMOND",
     UNIT = "UNIT",
     EMPTY = "EMPTY"
+    CORNER = "CORNER"
 
-
+@dataclass
+class Corner:
+    position: Position
 @dataclass
 class Target:
     target_type: TargetType
-    source: Union[Diamond, Unit, None]
+    source: Union[Diamond, Unit, Corner,None]
     position: Position
 
 

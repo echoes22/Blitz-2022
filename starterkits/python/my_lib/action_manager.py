@@ -3,7 +3,7 @@ from typing import List
 
 from game_command import CommandAction, CommandType
 from game_message import Unit, Tick, Position, TileType
-from my_lib.models import TargetType, Target
+from my_lib.models import TargetType, Target, Corner
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.target_manager import TargetManager
 from my_lib.unit_manager import UnitManager
@@ -39,6 +39,68 @@ class ActionManager:
             return self.get_optimal_hodler_move(unit)
         else:
             return self.move_to_nearest_diamond(unit)
+
+
+    def get_optimal_cornerlad_move(self, unit: Unit, corner) -> CommandAction:
+        if not unit.hasDiamond:
+            return self.move_to_nearest_diamond(unit)
+
+
+        current_enemy_units_positions = self.get_current_enemy_units_positions()
+        if unit.isSummoning:
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)   
+        if self.tick.tick == self.tick.totalTick - 1:
+            return self.create_drop_action(unit)  
+
+        elif unit.position != corner[0] :
+            my_corner = Corner
+            my_corner.position = corner[0]
+            my_target =  Target(TargetType.CORNER, my_corner, corner[0])
+
+            allies_position = []
+            target_path = self.pathfinder.get_nearest_target(unit.position, [my_corner], allies_position)
+            # setting target
+            self.target_manager.set_target_of_unit(unit, my_target)
+
+            # move to next position
+            next_position = target_path.get_next_position()
+
+            return self.create_move_action(unit, next_position)
+
+
+        elif (self.tick.tick < self.tick.totalTick - 7
+              and not unit.isSummoning
+              and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
+              and self.summoning_is_safe(unit, current_enemy_units_positions)
+        ):
+            return self.create_summon_action(unit)
+        else:
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None) 
+
+    def get_optimal_defender_move(self, unit: Unit, corner) -> CommandAction:
+        if unit.hasDiamond:
+            return self.create_drop_action(unit) 
+
+
+        current_enemy_units_positions = self.get_current_enemy_units_positions()
+    
+        if self.tick.tick == self.tick.totalTick - 1:
+            return self.create_drop_action(unit)  
+
+        elif unit.position != corner[1] :
+            my_corner = Corner
+            my_corner.position = corner[1]
+            my_target =  Target(TargetType.CORNER, my_corner, corner[1])
+
+            allies_position = []
+            target_path = self.pathfinder.get_nearest_target(unit.position, [my_corner], allies_position)
+            # setting target
+            self.target_manager.set_target_of_unit(unit, my_target)
+
+            # move to next position
+            next_position = target_path.get_next_position()
+            return self.create_move_action(unit, next_position)
+        
 
     def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
         current_enemy_units_positions = [unit.position for unit in self.unit_manager.get_spawned_enemy_units()]

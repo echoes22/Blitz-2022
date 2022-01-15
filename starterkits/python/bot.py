@@ -1,7 +1,7 @@
 import threading
 from typing import List, Optional, Tuple
 
-from game_command import CommandAction
+from game_command import CommandAction, CommandType
 from game_message import Tick, Team, Unit, TickMap, TileType
 from my_lib.action_manager import ActionManager
 from my_lib.unit_manager import UnitManager
@@ -14,6 +14,7 @@ class Bot:
         self.team: Optional[Team] = None
         self.unit_manager = UnitManager()
         self.corners = None
+        self.used_corner = None
         print("Initializing your super mega duper bot")
 
     def get_next_moves(self, tick: Tick) -> List:
@@ -26,7 +27,7 @@ class Bot:
         self.tick = tick
         if self.tick.tick == 0 :
             self.corners = self.find_corners()
-            print(self.corners)
+            self.used_corner = self.corners[0]
 
 
 
@@ -36,7 +37,7 @@ class Bot:
         action_manager = ActionManager(tick, self.unit_manager)
 
         actions: List[CommandAction] = []
-        thread = threading.Thread(target=run_action, args=(action_manager, self.team.units, actions))
+        thread = threading.Thread(target=run_action, args=(action_manager, self.team.units, actions, self.used_corner))
         thread.start()
         thread.join(timeout=0.95)
 
@@ -87,12 +88,19 @@ class Bot:
         return corners
 
 
-def run_action(action_manager: ActionManager, team_units: List[Unit], actions: List[CommandAction]):
+def run_action(action_manager: ActionManager, team_units: List[Unit], actions: List[CommandAction], corner):
     for unit in team_units:
         if not unit.hasSpawned:
             spawn = action_manager.get_optimal_spawn(unit)
             actions.append(spawn)
         else:
-            actions.append(action_manager.get_optimal_move(unit))
+            # CORNER_LAD
+            if unit == team_units[0]:
+                actions.append(action_manager.get_optimal_cornerlad_move(unit, corner))
+            #DEFENDER
+            elif unit == team_units[1]:
+                actions.append(action_manager.get_optimal_defender_move(unit, corner))
+            else:
+                actions.append(action_manager.get_optimal_move(unit))
 
 
