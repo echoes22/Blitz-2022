@@ -102,7 +102,7 @@ class Bot:
         else:
             nearest_enemy_pos = self.get_nearest_enemy_position(unit, current_enemy_units_positions)
             if nearest_enemy_pos is None:
-                return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None )
+                return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
             new_pos = self.move_away_from_target_pos(unit, nearest_enemy_pos)
             return self.create_move_action(unit, new_pos)
 
@@ -201,13 +201,19 @@ class Bot:
 
         if not enemy_pos:
             return None
-        closest_pos = enemy_pos[0]
-        closest_distance = self.get_distance(unit.position, closest_pos)
+        closest_pos = None
         for pos in enemy_pos:
-            current_distance = self.get_distance(unit.position, pos)
-            if current_distance < closest_distance:
+            if pos:
                 closest_pos = pos
-                closest_distance = current_distance
+                break
+        if closest_pos:
+            closest_distance = self.get_distance(unit.position, closest_pos)
+            if closest_distance is not None:
+                for pos in enemy_pos:
+                    current_distance = self.get_distance(unit.position, pos)
+                    if current_distance is not None and current_distance < closest_distance:
+                        closest_pos = pos
+                        closest_distance = current_distance
         return closest_pos
 
     def move_away_from_target_pos(self, unit: Unit, target_pos: Position) -> Position:
@@ -272,7 +278,8 @@ class Bot:
 
     def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
         for pos in enemy_pos:
-            if self.get_distance(unit.position, pos) <= 1:
+            distance = self.get_distance(unit.position, pos)
+            if distance is not None and distance <= 1:
                 return True
         return False
 
@@ -280,9 +287,11 @@ class Bot:
         # inefficient
         unit_diamond = [x for x in self.tick.map.diamonds if x.id == unit.diamondId][0]
         for pos in enemy_positions:
-            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel + 2:
+            distance = self.get_distance(unit.position, pos)
+            if distance is not None and distance <= unit_diamond.summonLevel + 2:
                 return False
         return True
 
     def get_distance(self, origin: Position, destination: Position) -> int:
-        return self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)]).get_distance()
+        target_path = self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)])
+        return target_path.get_distance() if target_path else None
