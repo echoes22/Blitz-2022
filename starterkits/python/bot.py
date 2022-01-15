@@ -60,6 +60,8 @@ class Bot:
         return spawns[random.randint(0, len(spawns) - 1)]
 
     def get_optimal_move(self, unit: Unit) -> CommandAction:
+        if self.tick.tick == self.tick.totalTick - 1:
+            return self.create_drop_action(unit)
         return self.move_to_nearest_diamond(unit)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
@@ -86,3 +88,33 @@ class Bot:
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
+
+    def create_drop_action(self, unit: Unit) -> CommandAction:
+        droppable_pos = self.find_free_adjacent_tile(unit)
+        return CommandAction(action=CommandType.DROP, unitId=unit.id, target=droppable_pos)
+
+    def find_free_adjacent_tile(self, unit: Unit) -> Position:
+        try:
+            pos = Position(unit.position.x - 1, unit.position.y)
+            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                return pos
+        except:
+            pass
+        try:
+            pos = Position(unit.position.x + 1, unit.position.y)
+            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                return pos
+        except:
+            pass
+        try:
+            pos = Position(unit.position.x, unit.position.y - 1)
+            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                return pos
+        except:
+            pass
+        try:
+            pos = Position(unit.position.x, unit.position.y + 1)
+            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+                return pos
+        except:
+            pass
