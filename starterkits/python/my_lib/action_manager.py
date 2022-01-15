@@ -101,22 +101,22 @@ class ActionManager:
                     delta_x = enemies_nearby[0].position.x - unit.position.x
                     if delta_x:  # si delta_x ça veux dire qu'il est à droite ou à gauche
                         try:
-                            pos = Position(enemies_nearby[0].position.x + 1, enemies_nearby[0].position.y)
+                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y + 1)
                             if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
                                 return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
 
-                            pos = Position(enemies_nearby[0].position.x - 1, enemies_nearby[0].position.y)
+                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y - 1)
                             if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
                                 return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
                         except:
                             pass
                     else:
                         try:
-                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y + 1)
+                            pos = Position(enemies_nearby[0].position.x + 1, enemies_nearby[0].position.y)
                             if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
                                 return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
 
-                            pos = Position(enemies_nearby[0].position.x, enemies_nearby[0].position.y - 1)
+                            pos = Position(enemies_nearby[0].position.x - 1, enemies_nearby[0].position.y)
                             if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
                                 return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=pos)
                         except:
