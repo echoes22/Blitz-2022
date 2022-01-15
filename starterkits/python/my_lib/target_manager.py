@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from game_message import TickMap, Unit, Position
+from my_lib.models import Target
 
 
 class TargetManager:
@@ -9,20 +10,20 @@ class TargetManager:
         self._units = units
         self._targets = {unit.id: None for unit in units}
 
-    def get_target_of_unit(self, unit: Unit) -> Optional[Position]:
+    def get_target_of_unit(self, unit: Unit) -> Optional[Target]:
         return self._targets[unit.id]
 
     def unit_has_target(self, unit: Unit) -> bool:
         return self._targets[unit.id] is not None
 
-    def set_target_of_unit(self, unit: Unit, position: Position) -> bool:
-        if self.target_is_available_for_unit(unit, position):
-            self._targets[unit.id] = position
+    def set_target_of_unit(self, unit: Unit, target: Target) -> bool:
+        if self.target_is_available_for_unit(unit, target):
+            self._targets[unit.id] = target
             return True
         return False
 
-    def target_is_available_for_unit(self, unit: Unit, target: Position) -> bool:
-        if target is None:
+    def target_is_available_for_unit(self, unit: Unit, position: Position) -> bool:
+        if position is None:
             return True
         if unit is None:
             return False
@@ -30,7 +31,8 @@ class TargetManager:
         for curr_unit in self._units:
             if curr_unit.id != unit.id:
                 curr_target = self.get_target_of_unit(curr_unit)
-                if curr_target is not None and curr_target.x == target.x and curr_target.y == target.y:
+                if (curr_target is not None and curr_target.position.x == position.x
+                        and curr_target.position.y == position.y):
                     return False
 
         return True
