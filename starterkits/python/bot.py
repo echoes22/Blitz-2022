@@ -64,18 +64,29 @@ class Bot:
         return spawns[random.randint(0, len(spawns) - 1)]
 
     def get_optimal_move(self, unit: Unit) -> CommandAction:
-        if not unit.hasDiamond:
+        if unit.hasDiamond:
+            return self.get_optimal_hodler_move(unit)
+        elif not unit.hasDiamond:
             return self.move_to_nearest_diamond(unit)
-        if self.tick.tick == self.tick.totalTick - 1 and unit.hasDiamond:
+
+    def get_optimal_hodler_move(self, unit: Unit) -> CommandAction:
+        current_enemy_units_positions = self.get_current_enemy_units_positions()
+        if unit.isSummoning:
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+        if self.tick.tick == self.tick.totalTick - 1:
+            return self.create_drop_action(unit)
+        elif self.position_is_dangerous(unit, current_enemy_units_positions):
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7
-              and unit.hasDiamond
-              and not unit.isSummoning
-              and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
-        ):
+                and not unit.isSummoning
+                and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
+                and self.summoning_is_safe(unit, current_enemy_units_positions)
+            ):
             return self.create_summon_action(unit)
         else:
-            return self.create_move_action(unit, self.get_random_position(self.tick.map))
+            nearest_enemy_pos = self.get_nearest_enemy_position(unit, current_enemy_units_positions)
+            new_pos = self.move_away_from_target_pos(unit, nearest_enemy_pos)
+            return self.create_move_action(unit, new_pos)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         # sorting advailable targets
@@ -112,10 +123,7 @@ class Bot:
         return CommandAction(action=CommandType.SUMMON, unitId=unit.id, target=None)
 
     def find_free_adjacent_tile(self, unit: Unit) -> Position:
-        current_unit_positions = []
-        for team in self.tick.teams:
-            for unit in team.units:
-                current_unit_positions.append(unit.position)
+        current_unit_positions = self.get_current_unit_positions()
         try:
             pos = Position(unit.position.x - 1, unit.position.y)
             if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
@@ -144,3 +152,90 @@ class Bot:
                 return pos
         except:
             pass
+
+    def get_current_unit_positions(self):
+        current_unit_positions = []
+        for team in self.tick.teams:
+            for unit in team.units:
+                current_unit_positions.append(unit.position)
+        return current_unit_positions
+
+    def get_current_enemy_units_positions(self):
+        current_enemy_unit_positions = []
+        for team in self.tick.teams:
+            if team.id != self.tick.teamId:
+                for unit in team.units:
+                    current_enemy_unit_positions.append(unit.position)
+        return current_enemy_unit_positions
+
+    def get_nearest_enemy_position(self, unit: Unit, enemy_pos: List[Position]):
+        closest_pos = enemy_pos[0]
+        closest_distance = self.get_distance(unit.position, closest_pos)
+        for pos in enemy_pos:
+            current_distance = self.get_distance(unit.position, pos)
+            if current_distance < closest_distance:
+                closest_pos = pos
+                closest_distance = current_distance
+        return closest_pos
+
+    def move_away_from_target_pos(self, unit: Unit, target_pos: Position) -> Position:
+        current_unit_positions = self.get_current_unit_positions()
+        current_distance = self.get_distance(unit.position, target_pos)
+        best_position = unit.position
+        try:
+            new_pos = Position(unit.position.x - 1, unit.position.y)
+            new_distance = self.get_distance(new_pos, target_pos)
+            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
+                and new_pos not in current_unit_positions
+                and new_distance > current_distance):
+                best_position = new_pos
+                current_distance = new_distance
+        except:
+            pass
+        try:
+            new_pos = Position(unit.position.x + 1, unit.position.y)
+            new_distance = self.get_distance(new_pos, target_pos)
+            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
+                and new_pos not in current_unit_positions
+                and new_distance > current_distance):
+                best_position = new_pos
+                current_distance = new_distance
+        except:
+            pass
+        try:
+            new_pos = Position(unit.position.x, unit.position.y - 1)
+            new_distance = self.get_distance(new_pos, target_pos)
+            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
+                and new_pos not in current_unit_positions
+                and new_distance > current_distance):
+                best_position = new_pos
+                current_distance = new_distance
+        except:
+            pass
+        try:
+            new_pos = Position(unit.position.x, unit.position.y + 1)
+            new_distance = self.get_distance(new_pos, target_pos)
+            if (self.tick.map.get_tile_type_at(target_pos) == TileType.EMPTY
+                and new_pos not in current_unit_positions
+                and new_distance > current_distance):
+                best_position = new_pos
+                current_distance = new_distance
+        except:
+            pass
+
+        return best_position
+
+    def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
+        for pos in enemy_pos:
+            if self.get_distance(unit.position, pos) <= 2:
+                return True
+        return False
+
+    def summoning_is_safe(self, unit: Unit, enemy_positions: List[Position]) -> bool:
+        # inefficient
+        unit_diamond = [x for x in self.tick.map.diamonds if x.id == unit.diamondId][0]
+        for pos in enemy_positions:
+            if self.get_distance(unit.position, pos) <= unit_diamond.summonLevel + 1:
+                return False
+        return True
+        return True
