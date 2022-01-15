@@ -33,11 +33,9 @@ class Bot:
 
         for unit in self.team.units:
             if not unit.hasSpawned:
-                actions.append(
-                    CommandAction(
-                        action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position(tick.map)
-                    )
-                )
+
+                actions.append(self.get_optimal_spawn(unit))
+        
             else:
                 actions.append(
                     self.get_optimal_move(unit)
@@ -46,6 +44,18 @@ class Bot:
             # CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.get_random_position(tick.map))
 
         return actions
+
+    def get_optimal_spawn(self, unit: Unit)->CommandAction:
+        # Diamonds to Target
+        untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
+                             diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+        
+        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
+                       untargeted_diamond]
+
+        destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
+        self.target_manager.set_target_of_unit(unit,destination_and_target_path["target_path"].target)
+        return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=destination_and_target_path["spawn"])
 
     def get_random_position(self, tick_map: TickMap) -> Position:
         return Position(
@@ -101,7 +111,7 @@ class Bot:
 
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
-
+        print(target_path)
         if target_path is None:
             # todo
             pass
@@ -110,7 +120,7 @@ class Bot:
         self.target_manager.set_target_of_unit(unit, target_path.target)
 
         # move to next position
-        return self.create_move_action(unit, Position(target_path.path[0][0], target_path.path[0][1]))
+        return self.create_move_action(unit, Position(target_path.path[1][0], target_path.path[1][1]))
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
