@@ -22,7 +22,9 @@ class TargetManager:
         return False
 
     def target_is_available_for_unit(self, unit: Unit, target: Position) -> bool:
-        if unit is None or target is None:
+        if target is None:
+            return True
+        if unit is None:
             return False
 
         for curr_unit in self._units:

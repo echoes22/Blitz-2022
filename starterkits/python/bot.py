@@ -64,6 +64,7 @@ class Bot:
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         diamond = self.find_nearest_diamond(unit)
+        self.target_manager.set_target_of_unit(unit, diamond.position)
 
         return self.create_move_action(unit, diamond.position)
 
@@ -71,15 +72,14 @@ class Bot:
         unit_pos = unit.position
         diamond_list = self.tick.map.diamonds
 
-        closest_diamond = (diamond_list[0], 999999)
+        closest_diamond = {"diamond": diamond_list[0], "distance": 999999}
         for diamond in diamond_list:
-            if not diamond.ownerId:
-                diamond_pos = diamond.position
-                distance = self.get_distance(unit_pos, diamond_pos)
-                if distance <= closest_diamond[1]:
-                    closest_diamond = (diamond, distance)
+            if not diamond.ownerId and self.target_manager.target_is_available_for_unit(unit, diamond.position):
+                distance = self.get_distance(unit_pos, diamond.position)
+                if distance <= closest_diamond["distance"]:
+                    closest_diamond = {"diamond": diamond, "distance": distance}
 
-        return closest_diamond[0]
+        return closest_diamond["diamond"]
 
     def get_distance(self, pos1: Position, pos2: Position):
         return sqrt((pos1.x - pos2.x)**2 + (pos1.y - pos2.y)**2)
