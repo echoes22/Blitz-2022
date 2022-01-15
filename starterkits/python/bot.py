@@ -10,7 +10,6 @@ from my_lib.target_manager import TargetManager
 
 class Bot:
     def __init__(self):
-
         self.tick: Optional[Tick] = None
         self.target_manager: Optional[TargetManager] = None
         self.team: Optional[Team] = None
@@ -121,11 +120,32 @@ class Bot:
         # finding nearest diamond
         target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
         if target_path is None:
-            # todo kill mode
-            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
+            return self.move_in_position_to_attack(unit)
 
         # setting target
         self.target_manager.set_target_of_unit(unit, target_path.target)
+
+        # move to next position
+        next_position = target_path.get_next_position()
+
+        return self.create_move_action(unit, next_position)
+
+    def move_in_position_to_attack(self, unit: Unit) -> CommandAction:
+        untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
+                              self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+        # formating targets
+        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
+                       untargeted_diamond]
+
+        allies_position = [unit.position for unit in self.ally_units]
+        # finding nearest diamond
+        target_path = self.pathfinder.get_nearest_target(unit.position, target_list, allies_position)
+
+        # setting target
+        self.target_manager.set_target_of_unit(unit, target_path.target)
+
+        if target_path is None:
+            return CommandAction(action=CommandType.NONE, unitId=unit.id, target=None)
 
         # move to next position
         next_position = target_path.get_next_position()

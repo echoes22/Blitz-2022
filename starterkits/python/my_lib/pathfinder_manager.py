@@ -110,7 +110,7 @@ def astar(tickmap: TickMap, start: Position, end: Position, blacklisted_position
     counter = 0
     # Loop until you find the end
     while len(open_list) > 0:
-        if counter > 100:
+        if counter > 50:
             return None
         counter += 1
 
