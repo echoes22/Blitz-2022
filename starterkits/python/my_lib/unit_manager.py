@@ -1,7 +1,7 @@
 from typing import List
 
-from game_message import Tick
-from my_lib.models import PrioritizedUnit
+from game_message import Tick, Unit
+from my_lib.models import PrioritizedUnit, PrioritizedMode
 
 
 class UnitManager:
@@ -19,7 +19,7 @@ class UnitManager:
         return self._units
 
     def get_allied_units(self) -> List[PrioritizedUnit]:
-        return self._team.units
+        return self._allied_units
 
     def get_spawned_allied_units(self):
         if not self._spawned_allied_units:
@@ -47,9 +47,14 @@ class UnitManager:
         for team in tick.teams:
             if team.id == tick.teamId:
                 self._team = team
-                self._allied_units = team.units
+                self._allied_units = [self.unit_to_prioritized_unit(unit) for unit in team.units]
             else:
-                self._enemy_units.extend(team.units)
-            self._units.extend(team.units)
+                self._enemy_units.extend([self.unit_to_prioritized_unit(unit) for unit in team.units])
+            self._units.extend([self.unit_to_prioritized_unit(unit) for unit in team.units])
         self._spawned_enemy_units = None
         self._spawned_allied_units = None
+
+    @staticmethod
+    def unit_to_prioritized_unit(unit: Unit, mode: PrioritizedMode = PrioritizedMode.SHORT_RANGE) -> PrioritizedUnit:
+        return PrioritizedUnit(unit.id, unit.teamId, unit.path, unit.hasDiamond, unit.hasSpawned, unit.isSummoning,
+                               unit.lastState, unit.diamondId, unit.position, mode)

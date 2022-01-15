@@ -26,10 +26,7 @@ class ActionManager:
 
     def get_optimal_spawn(self, unit: PrioritizedUnit) -> CommandAction:
         # Diamonds to Target
-        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
-                       self.unit_manager.get_available_diamonds() if
-                       self.target_manager.target_is_available_for_unit(unit, diamond.position)]
-
+        target_list = self.target_manager.get_available_diamond_targets_for_unit(unit)
         destination_and_target_path = self.pathfinder.find_optimal_spawn(target_list)
         if not destination_and_target_path:
             return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position())
@@ -40,7 +37,7 @@ class ActionManager:
         spawns = self.spawn_manager.find_all_spawn()
         return spawns[random.randint(0, len(spawns) - 1)]
 
-    def get_optimal_move(self, unit: Unit) -> CommandAction:
+    def get_optimal_move(self, unit: PrioritizedUnit) -> CommandAction:
         if unit.hasDiamond:
             return self.get_optimal_hodler_move(unit)
         else:
@@ -67,9 +64,9 @@ class ActionManager:
             new_pos = self.move_away_from_target_pos(unit, nearest_enemy_pos)
             return self.create_move_action(unit, new_pos)
 
-    def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
+    def move_to_nearest_diamond(self, unit: PrioritizedUnit) -> CommandAction:
         # formating targets
-        target_list = self.target_manager.get_targets(unit)
+        target_list = self.target_manager.get_prioritized_target_list(unit)
         if target_list:
             allies_position = [unit.position for unit in self.unit_manager.get_spawned_allied_units()]
             for target in target_list:

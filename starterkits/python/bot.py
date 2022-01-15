@@ -30,8 +30,6 @@ class Bot:
         """
         if tick.tick == 0:
             self.spawn_manager.init_tick(tick)
-        self.tick = tick
-        self.team = tick.get_teams_by_id()[tick.teamId]
         self.unit_manager.init_tick(tick)
         self.target_manager.init_tick(tick)
         self.pathfinder.set_tick_map(tick.map)

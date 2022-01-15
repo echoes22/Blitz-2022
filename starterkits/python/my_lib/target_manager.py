@@ -26,6 +26,10 @@ class TargetManager:
                                      or diamond.ownerId not in self._unit_manager.get_allied_unit_ids()]
         return self._diamond_targets
 
+    def get_available_diamond_targets_for_unit(self, unit: Unit):
+        return [target for target in self.get_diamond_targets() if
+                self.target_is_available_for_unit(unit, target.position)]
+
     def get_prioritized_target(self, unit: PrioritizedUnit, target: Target) -> Optional[PrioritizedTarget]:
         value = target.source.points * target.source.summonLevel
         if unit.hasSpawned:
@@ -40,7 +44,7 @@ class TargetManager:
 
         return PrioritizedTarget(target.target_type, target.source, target.position, value)
 
-    def get_targets(self, unit: PrioritizedUnit) -> List[Target]:
+    def get_prioritized_target_list(self, unit: PrioritizedUnit) -> List[Target]:
         return sorted([self.get_prioritized_target(unit, target) for target in self.get_diamond_targets() if
                        self.target_is_available_for_unit(unit, target.position)], key=lambda t: t.value, reverse=True)
 

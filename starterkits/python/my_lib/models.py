@@ -45,3 +45,9 @@ class PrioritizedMode(Enum):
 @dataclass
 class PrioritizedUnit(Unit):
     mode: PrioritizedMode = PrioritizedMode.SHORT_RANGE
+
+    def __hash__(self):
+        return int(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
