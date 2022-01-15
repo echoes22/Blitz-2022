@@ -30,7 +30,7 @@ class TargetManager:
         for curr_unit in self._units:
             if curr_unit.id != unit.id:
                 curr_target = self.get_target_of_unit(curr_unit)
-                if curr_target.x == target.x and curr_target.y == target.y:
+                if curr_target is not None and curr_target.x == target.x and curr_target.y == target.y:
                     return False
 
         return True
