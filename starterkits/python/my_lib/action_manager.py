@@ -2,7 +2,7 @@ import random
 from typing import List
 
 from game_command import CommandAction, CommandType
-from game_message import Unit, Tick, Position, TileType
+from game_message import Unit, Tick, Position, TileType, Team
 from my_lib.models import TargetType, Target
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.spawn_manager import SpawnManager
@@ -102,6 +102,11 @@ class ActionManager:
                               self.tick.map.get_tile_type_at(
                                   enemies.position) == TileType.EMPTY and self.pathfinder.simple_distance(
                                   enemies.position, unit.position) < 1.5]
+            if unit.position:
+                enemies_with_diamond_in_los = [enemy for enemy in self.unit_manager.get_spawned_enemy_units() if
+                                enemy.position in self.get_unit_los(unit) and
+                                enemy.hasDiamond
+                ]
             if enemies_nearby:
                 if self.tick.map.get_tile_type_at(unit.position) == TileType.EMPTY:
                     return CommandAction(action=CommandType.ATTACK, unitId=unit.id, target=enemies_nearby[0].position)
@@ -130,6 +135,11 @@ class ActionManager:
                         except:
                             pass
                 return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=self.find_free_adjacent_tile(unit))
+            elif enemies_with_diamond_in_los:
+                #TODO rendre mieux?
+                enemy_to_vine = enemies_with_diamond_in_los[0]
+                if self.is_higher_priority(unit, enemy_to_vine):
+                    return CommandAction(action=CommandType.VINE, unitId=unit.id, target=enemy_to_vine.position)
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
 
     def create_drop_action(self, unit: Unit) -> CommandAction:
@@ -283,3 +293,52 @@ class ActionManager:
     def get_distance(self, origin: Position, destination: Position) -> int:
         target_path = self.pathfinder.get_nearest_target(origin, [Target(TargetType.EMPTY, None, destination)])
         return target_path.get_distance() if target_path else None
+
+    def is_higher_priority(self, unit1: Unit, unit2: Unit):
+            return self.get_team_priority_level(unit1.teamId) < self.get_team_priority_level(unit2.teamId)
+
+    def get_team_priority_level(self, team_id: str) -> int:
+        return self.tick.teamPlayOrderings[str(self.tick.tick+1)].index(team_id)
+
+    def get_unit_los(self, unit: Unit) -> List[Position]:
+        # aucune los si sur spawn pour pas viner from spawn
+        if unit.hasSpawned:
+            if self.tick.map.get_tile_type_at(unit.position) == TileType.SPAWN:
+                return []
+
+            los = []
+            pos_to_check = Position(unit.position.x+1, unit.position.y)
+            try:
+                while self.tick.map.get_tile_type_at(pos_to_check) == TileType.EMPTY:
+                    los.append(pos_to_check)
+                    pos_to_check = Position(pos_to_check.x+1, pos_to_check.y)
+            except:
+                pass
+
+            pos_to_check = Position(unit.position.x-1, unit.position.y)
+            try:
+                while self.tick.map.get_tile_type_at(pos_to_check) == TileType.EMPTY:
+                    los.append(pos_to_check)
+                    pos_to_check = Position(pos_to_check.x-1, pos_to_check.y)
+            except:
+                pass
+
+            pos_to_check = Position(unit.position.x, unit.position.y+1)
+            try:
+                while self.tick.map.get_tile_type_at(pos_to_check) == TileType.EMPTY:
+                    los.append(pos_to_check)
+                    pos_to_check = Position(pos_to_check.x, pos_to_check.y+1)
+            except:
+                pass
+
+            pos_to_check = Position(unit.position.x, unit.position.y-1)
+            try:
+                while self.tick.map.get_tile_type_at(pos_to_check) == TileType.EMPTY:
+                    los.append(pos_to_check)
+                    pos_to_check = Position(pos_to_check.x, pos_to_check.y-1)
+            except:
+                pass
+
+            return los
+
+        return []
