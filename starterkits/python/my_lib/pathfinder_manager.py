@@ -48,7 +48,6 @@ class PathFinderManager:
                                                         self._unit_manager.get_spawned_enemy_units() if
                                                         self._tick_map.get_tile_type_at(
                                                             unit.position) == TileType.SPAWN or not unit.hasDiamond]
-
         for spawn in spawns:
             my_target = self.get_nearest_target(spawn, [targets[0]],
                                                 allied_unit_positions + enemy_unit_positions_in_spawn_or_with_no_gem)

@@ -77,14 +77,14 @@ class Bot:
                     except:
                         pass
                     if (haut+bas == 1 and gauche+droite == 1):
-                        if (haut == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y + 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x-1, y + 1)))
-                        if (haut == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y + 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x+1, y + 1)))
-                        if (bas == 1 and gauche == 1 and self.tick.map.get_tile_type_at(Position(x-1, y - 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x-1, y - 1)))
-                        if (bas == 1 and droite == 1 and self.tick.map.get_tile_type_at(Position(x+1, y - 1)) == TileType.EMPTY):
-                            corners.append((Position(x, y),Position(x+1, y - 1)))
+                        if (haut == 1 and gauche == 1):
+                            corners.append((Position(x, y),Position(0, 0)))
+                        if (haut == 1 and droite == 1):
+                            corners.append((Position(x, y),Position(0, 0)))
+                        if (bas == 1 and gauche == 1):
+                            corners.append((Position(x, y),Position(0, 0)))
+                        if (bas == 1 and droite == 1):
+                            corners.append((Position(x, y),Position(0, 0)))
         return corners
 
 def run_action(action_manager: ActionManager, team_units: List[Unit], actions: List[CommandAction], corners):
