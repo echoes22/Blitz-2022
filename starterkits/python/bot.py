@@ -1,7 +1,8 @@
 import random
 from math import sqrt
+import re
 from typing import List, Optional
-
+from EasyA import astar
 from game_command import CommandAction, CommandType
 from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
 from my_lib.target_manager import TargetManager
@@ -9,6 +10,7 @@ from my_lib.target_manager import TargetManager
 
 class Bot:
     def __init__(self):
+        
         self.tick: Optional[Tick] = None
         self.target_manager: Optional[TargetManager] = None
         self.team: Optional[Team] = None
@@ -84,13 +86,20 @@ class Bot:
         for diamond in diamond_list:
             if not diamond.ownerId and self.target_manager.target_is_available_for_unit(unit, diamond.position):
                 distance = self.get_distance(unit_pos, diamond.position)
-                if distance <= closest_diamond["distance"]:
+
+                if distance is None:
+                    pass
+                elif distance <= closest_diamond["distance"]:
                     closest_diamond = {"diamond": diamond, "distance": distance}
 
         return closest_diamond["diamond"]
 
     def get_distance(self, pos1: Position, pos2: Position):
-        return sqrt((pos1.x - pos2.x)**2 + (pos1.y - pos2.y)**2)
+        if astar(self.tick.map,pos1,pos2) is None:
+            return None
+        else:
+            return len(astar(self.tick.map,pos1,pos2))
+        
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
@@ -127,3 +136,6 @@ class Bot:
                 return pos
         except:
             pass
+    
+    def get_path(self, pos1: Position, pos2: Position):
+        return astar(self.tick.map,pos1,pos2)
