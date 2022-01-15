@@ -279,8 +279,10 @@ class ActionManager:
 
     def position_is_dangerous(self, unit: Unit, enemy_pos: List[Position]) -> bool:
         for pos in enemy_pos:
-            distance = self.pathfinder.simple_distance(unit.position, pos)
-            if distance is not None and distance < 3:
+            diffx = abs(unit.position.x - pos.x )
+            diffy = abs(unit.position.y - pos.y )
+            diff = diffy + diffx
+            if diff <= 1:
                 return True
         return False
 
