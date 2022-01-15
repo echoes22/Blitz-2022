@@ -2,7 +2,7 @@ import random
 from typing import List, Optional
 
 from game_command import CommandAction, CommandType
-from game_message import Tick, Position, Team, TickMap, TileType, Unit
+from game_message import Tick, Position, Team, TileType, Unit
 from my_lib.models import Target, TargetType
 from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.target_manager import TargetManager
@@ -41,18 +41,17 @@ class Bot:
                 actions.append(self.get_optimal_spawn(unit))
 
             else:
-                actions.append(
-                    self.get_optimal_move(unit)
-                )
+                actions.append(self.get_optimal_move(unit))
 
         return actions
 
-    def get_optimal_spawn(self, unit: Unit)->CommandAction:
+    def get_optimal_spawn(self, unit: Unit) -> CommandAction:
         # Diamonds to Target
         untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
                               diamond.ownerId is None and self.target_manager.target_is_available_for_unit(unit,
                                                                                                            diamond.position)]
-
+        if not untargeted_diamond:
+            return CommandAction(action=CommandType.SPAWN, unitId=unit.id, target=self.get_random_spawn_position())
         target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
                        untargeted_diamond]
 
@@ -67,13 +66,12 @@ class Bot:
             random.randint(0, self.tick.map.get_map_size_x() - 1), random.randint(0, self.tick.map.get_map_size_y() - 1)
         )
 
-    def get_random_spawn_position(self, tick_map: TickMap) -> Position:
+    def get_random_spawn_position(self) -> Position:
         spawns: List[Position] = []
-
-        for x in range(tick_map.get_map_size_x()):
-            for y in range(tick_map.get_map_size_y()):
+        for x in range(self.tick.map.get_map_size_x()):
+            for y in range(self.tick.map.get_map_size_y()):
                 position = Position(x, y)
-                if tick_map.get_tile_type_at(position) == TileType.SPAWN:
+                if self.tick.map.get_tile_type_at(position) == TileType.SPAWN:
                     spawns.append(position)
 
         return spawns[random.randint(0, len(spawns) - 1)]
@@ -93,10 +91,10 @@ class Bot:
         elif self.position_is_dangerous(unit, current_enemy_units_positions):
             return self.create_drop_action(unit)
         elif (self.tick.tick < self.tick.totalTick - 7
-                and not unit.isSummoning
-                and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
-                and self.summoning_is_safe(unit, current_enemy_units_positions)
-            ):
+              and not unit.isSummoning
+              and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
+              and self.summoning_is_safe(unit, current_enemy_units_positions)
+        ):
             return self.create_summon_action(unit)
         else:
             nearest_enemy_pos = self.get_nearest_enemy_position(unit, current_enemy_units_positions)
@@ -172,28 +170,28 @@ class Bot:
         try:
             pos = Position(unit.position.x - 1, unit.position.y)
             if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
-                and pos not in current_unit_positions):
+                    and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x + 1, unit.position.y)
             if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
-                and pos not in current_unit_positions):
+                    and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x, unit.position.y - 1)
             if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
-                and pos not in current_unit_positions):
+                    and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x, unit.position.y + 1)
             if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
-                and pos not in current_unit_positions):
+                    and pos not in current_unit_positions):
                 return pos
         except:
             pass
