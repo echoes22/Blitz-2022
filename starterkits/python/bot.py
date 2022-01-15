@@ -1,17 +1,20 @@
 import random
-from math import sqrt
 from typing import List, Optional
 
 from game_command import CommandAction, CommandType
-from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
+from game_message import Tick, Position, Team, TickMap, TileType, Unit
+from my_lib.models import Target, TargetType
+from my_lib.pathfinder_manager import PathFinderManager
 from my_lib.target_manager import TargetManager
 
 
 class Bot:
     def __init__(self):
+
         self.tick: Optional[Tick] = None
         self.target_manager: Optional[TargetManager] = None
         self.team: Optional[Team] = None
+        self.pathfinder = PathFinderManager()
         print("Initializing your super mega duper bot")
 
     def get_next_moves(self, tick: Tick) -> List:
@@ -24,6 +27,7 @@ class Bot:
         self.tick = tick
         self.team = tick.get_teams_by_id()[tick.teamId]
         self.target_manager = TargetManager(self.team.units, tick.map)
+        self.pathfinder.set_tick(tick)
 
         actions: List = []
 
@@ -64,36 +68,30 @@ class Bot:
             return self.move_to_nearest_diamond(unit)
         if self.tick.tick == self.tick.totalTick - 1 and unit.hasDiamond:
             return self.create_drop_action(unit)
-        elif (self.tick.tick < self.tick.totalTick - 7 
-                and unit.hasDiamond 
-                and not unit.isSummoning
-                and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
-            ):
+        elif (self.tick.tick < self.tick.totalTick - 7
+              and unit.hasDiamond
+              and not unit.isSummoning
+              and not unit.diamondId in [x.id for x in self.tick.map.diamonds if x.summonLevel == 5]
+        ):
             return self.create_summon_action(unit)
         else:
             return self.create_move_action(unit, self.get_random_position(self.tick.map))
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
-        diamond = self.find_nearest_diamond(unit)
-        self.target_manager.set_target_of_unit(unit, diamond.position)
+        # sorting advailable targets
+        untargeted_diamond = [diamond for diamond in self.tick.map.diamonds if
+                              self.target_manager.target_is_available_for_unit(unit, diamond.position)]
+        # formating targets
+        target_list = [Target(TargetType.DIAMOND, diamond, diamond.position) for diamond in
+                       untargeted_diamond]
 
-        return self.create_move_action(unit, diamond.position)
+        # finding nearest diamond
+        target_path = self.pathfinder.get_nearest_target(unit.position, target_list)
+        # setting target
+        self.target_manager.set_target_of_unit(unit, target_path.target)
 
-    def find_nearest_diamond(self, unit: Unit) -> Diamond:
-        unit_pos = unit.position
-        diamond_list = self.tick.map.diamonds
-
-        closest_diamond = {"diamond": diamond_list[0], "distance": 999999}
-        for diamond in diamond_list:
-            if not diamond.ownerId and self.target_manager.target_is_available_for_unit(unit, diamond.position):
-                distance = self.get_distance(unit_pos, diamond.position)
-                if distance <= closest_diamond["distance"]:
-                    closest_diamond = {"diamond": diamond, "distance": distance}
-
-        return closest_diamond["diamond"]
-
-    def get_distance(self, pos1: Position, pos2: Position):
-        return sqrt((pos1.x - pos2.x)**2 + (pos1.y - pos2.y)**2)
+        # move to next position
+        return self.create_move_action(unit, Position(target_path.path[0][0], target_path.path[0][1]))
 
     def create_move_action(self, unit: Unit, destination: Position) -> CommandAction:
         return CommandAction(action=CommandType.MOVE, unitId=unit.id, target=destination)
