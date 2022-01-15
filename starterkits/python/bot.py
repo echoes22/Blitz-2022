@@ -106,27 +106,35 @@ class Bot:
         return CommandAction(action=CommandType.SUMMON, unitId=unit.id, target=None)
 
     def find_free_adjacent_tile(self, unit: Unit) -> Position:
+        current_unit_positions = []
+        for team in self.tick.teams:
+            for unit in team.units:
+                current_unit_positions.append(unit.position)
         try:
             pos = Position(unit.position.x - 1, unit.position.y)
-            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+            if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
+                and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x + 1, unit.position.y)
-            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+            if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
+                and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x, unit.position.y - 1)
-            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+            if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
+                and pos not in current_unit_positions):
                 return pos
         except:
             pass
         try:
             pos = Position(unit.position.x, unit.position.y + 1)
-            if self.tick.map.get_tile_type_at(pos) == TileType.EMPTY:
+            if (self.tick.map.get_tile_type_at(pos) == TileType.EMPTY
+                and pos not in current_unit_positions):
                 return pos
         except:
             pass
