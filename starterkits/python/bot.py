@@ -1,15 +1,19 @@
-from typing import List
-from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
-from game_command import CommandAction, CommandType
-from math import sqrt
-
 import random
+from math import sqrt
+from typing import List, Optional
+
+from game_command import CommandAction, CommandType
+from game_message import Tick, Position, Team, TickMap, TileType, Unit, Diamond
+from myLib.targetManager import TargetManager
 
 
 class Bot:
     def __init__(self):
+        self.tick: Optional[Tick] = None
+        self.target_manager: Optional[TargetManager] = None
+        self.team = Optional[Team] = None
         print("Initializing your super mega duper bot")
-        
+
     def get_next_moves(self, tick: Tick) -> List:
         """
         Here is where the magic happens, for now the moves are random. I bet you can do better ;)
@@ -18,12 +22,12 @@ class Bot:
         it in the next turns.
         """
         self.tick = tick
-
-        my_team: Team = tick.get_teams_by_id()[tick.teamId]
+        self.team = tick.get_teams_by_id()[tick.teamId]
+        self.target_manager = TargetManager(self.team.units, tick.map)
 
         actions: List = []
 
-        for unit in my_team.units:
+        for unit in self.team.units:
             if not unit.hasSpawned:
                 actions.append(
                     CommandAction(
@@ -55,12 +59,12 @@ class Bot:
 
         return spawns[random.randint(0, len(spawns) - 1)]
 
-    def get_optimal_move(self, unit: Unit) -> CommandAction: 
+    def get_optimal_move(self, unit: Unit) -> CommandAction:
         return self.move_to_nearest_diamond(unit)
 
     def move_to_nearest_diamond(self, unit: Unit) -> CommandAction:
         diamond = self.find_nearest_diamond(unit)
-        
+
         return self.create_move_action(unit, diamond.position)
 
     def find_nearest_diamond(self, unit: Unit) -> Diamond:
